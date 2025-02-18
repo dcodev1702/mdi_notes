@@ -57,7 +57,7 @@ Set-MDISensorProxyConfiguration -ProxyUrl $proxy_url -ProxyCredential $proxy_cre
 Get-MDISensorProxyConfiguration
 
 
-# INSTALL MDI GPO's for AD-DS
+# Create & Link MDI GPO's for AD-DS
 Set-MDIConfiguration -Mode Domain -Configuration All -GpoNamePrefix "MDI" -Identity $Identity
 
 # Validate MDI Configuration 
