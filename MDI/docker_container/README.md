@@ -21,6 +21,9 @@ docker push digitalkali/squid-proxy
 ```console
 docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy
 ```
+# Create a Microsoft.ContainerIntance deleted to a subnet in the ZoADLab-VNET (virtual network)
+![image](https://github.com/user-attachments/assets/1bb02578-639a-4626-adee-aeeef427e47a)
+
 
 # RUN IN AZURE CONTAINER INSTANCE
 ```console
