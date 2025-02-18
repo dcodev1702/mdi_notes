@@ -50,7 +50,7 @@ Test-ADServiceAccount -Identity $Identity
 
 # Configure MDI to use Squid Proxy
 $proxy_url = "http://10.0.2.4:3128"   # Azure Container Instance (ACI) Container IP
-$proxy_creds = New-Object System.Management.Automation.PSCredential ("lorenzo", (ConvertTo-SecureString "Passw0rd123" -AsPlainText -Force))
+$proxy_creds = New-Object System.Management.Automation.PSCredential ("squid", (ConvertTo-SecureString "Passw0rd123" -AsPlainText -Force))
 Invoke-WebRequest -Uri http://www.google.com -Proxy $proxy_url -ProxyCredential $proxy_creds -Verbose
 
 Set-MDISensorProxyConfiguration -ProxyUrl $proxy_url -ProxyCredential $proxy_creds
