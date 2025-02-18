@@ -66,18 +66,4 @@ Get-MDIConfiguration -Mode Domain -Configuration All -Identity MDIgMSA -GpoNameP
 New-MDIConfigurationReport -Mode Domain -GpoNamePrefix "MDI" -Path C:\Temp
 
 
-# Run On the Linux Squid Proxy Server
-sudo tcpdump -i eth0 tcp port 3128 -v
 
-<#
-INSTALL SQUID PROXY
--------------------
-https://github.com/thelebster/docker-squid-simple-proxy/tree/master
-
-sudo apt-get install squid apache2-utils
-sudo htpasswd -c /etc/squid/passwords [USERNAME]
-
-Test the password store
-/usr/lib/squid3/basic_ncsa_auth /etc/squid/passwords
-
-#>
