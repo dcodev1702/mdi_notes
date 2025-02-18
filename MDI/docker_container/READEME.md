@@ -9,7 +9,7 @@ Test the password store
 /usr/lib/squid3/basic_ncsa_auth /etc/squid/passwords
 
 
-# BUILD & RUN IN DOCKER
+# BUILD USING DOCKER
 ```console
 docker build -t digitalkali/squid-proxy . </br>
 ```
