@@ -10,11 +10,11 @@ Test the password store
 
 
 # BUILD & RUN IN DOCKER
-docker build -t digitalkali/squid-proxy .
-docker push digitalkali/squid-proxy
+docker build -t digitalkali/squid-proxy . </br>
+docker push digitalkali/squid-proxy </br>
 
 # RUN IN DOCKER
-docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy
+docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy </br>
 
 # RUN IN AZURE CONTAINER INSTANCE
 az container create --resource-group MIR --location eastus2 --name squid-proxy-container --image digitalkali/squid-proxy:latest --cpu 1 --memory 2 --vnet ZoADLab-VNET --subnet ContainerNet --ports 3128 --environment-variables http_proxy="http://localhost:3128" https_proxy="http://localhost:3128"
