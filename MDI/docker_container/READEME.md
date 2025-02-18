@@ -11,15 +11,15 @@ Test the password store
 
 # BUILD USING DOCKER
 ```console
-docker build -t digitalkali/squid-proxy . </br>
+docker build -t digitalkali/squid-proxy .
 ```
 ```console
-docker push digitalkali/squid-proxy </br>
+docker push digitalkali/squid-proxy
 ```
 
 # RUN IN DOCKER
 ```console
-docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy </br>
+docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy
 ```
 
 # RUN IN AZURE CONTAINER INSTANCE
