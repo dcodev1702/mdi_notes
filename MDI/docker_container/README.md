@@ -22,6 +22,9 @@ docker push digitalkali/squid-proxy
 docker run -d --name squid-container -e TZ=UTC -p 3128:3128 digitalkali/squid-proxy
 ```
 # Create a delagated subnet in the virtual network
+```console
+az network vnet subnet create --resource-group TEST-RG --vnet-name ZoADLab-VNET --name ContainerNet --address-prefix 10.0.2.0/24 --delegations Microsoft.ContainerInstance/containerGroups
+```
 ![image](https://github.com/user-attachments/assets/1bb02578-639a-4626-adee-aeeef427e47a)
 
 
