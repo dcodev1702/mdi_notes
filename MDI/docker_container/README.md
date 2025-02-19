@@ -30,7 +30,7 @@ az network vnet subnet create --resource-group MIR --vnet-name ZoADLab-VNET --na
 
 # RUN IN AZURE CONTAINER INSTANCE
 ```console
-az container create --resource-group MIR --location eastus2 --name squid-proxy-container --image digitalkali/squid-proxy:latest --cpu 1 --memory 2 --vnet ZoADLab-VNET --os-type Linux --subnet ContainerNet --ports 3128 --environment-variables http_proxy="http://localhost:3128" https_proxy="http://localhost:3128"
+az container create --resource-group MIR --location eastus2 --name squid-proxy-container --image digitalkali/squid-proxy:latest --cpu 1 --memory 3 --vnet ZoADLab-VNET --os-type Linux --subnet ContainerNet --ports 3128 --environment-variables http_proxy="http://localhost:3128" https_proxy="http://localhost:3128"
 ```
 
 ![image](https://github.com/user-attachments/assets/d003f1b4-bf1f-4033-a589-fbe7f33ee968)
