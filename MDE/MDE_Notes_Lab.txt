@@ -60,7 +60,7 @@ auditpol /get /category:*
 CONFIGURE ASR / AUDIT MODE
 ----------------------------------
 # Run the ASR Audit PS Script, it will create the GPO and Link it
-
+./Enable-ASR-Audit-Workstations-GPO.ps1
 
 
 
@@ -87,7 +87,8 @@ EXPLOIT GUARD / AUDIT MODE
 ---------------------------
 New-SmbShare -Name "GPO-Configs" -Path "C:\GPO-Configs" -ReadAccess "Domain Computers"
 
-VSCode -> ExploitProtectionLite.xml
+# On DC-1 copy the xml file into the SMB Share (C:\GPO-Configs)
+Copy ExploitProtectionsLite.xml to C:\GPO-Configs
 --------------------------------------------
 
 
