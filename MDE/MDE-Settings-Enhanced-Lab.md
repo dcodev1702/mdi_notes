@@ -308,7 +308,7 @@ Mode                 LastWriteTime         Length Name
 Test that the UNC path is accessible:
 
 ```powershell
-# Test UNC path (replace DC01 with your DC hostname)
+# Test UNC path
 $DCHostname = $env:COMPUTERNAME
 $UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
 
