@@ -92,7 +92,7 @@ Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimePr
 **Expected State:**
 - ✅ Devices appear in Microsoft Defender XDR portal
 - ✅ Microsoft Defender Antivirus in **Active Mode** (not Passive or Disabled)
-- ✅ Real-time protection enabled
+- ✅ **Real-time Protection** is enabled
 - ✅ No existing ASR, Exploit Protection, or Network Protection configurations
 - ✅ Cloud-delivered protection enabled
 
