@@ -244,7 +244,7 @@ Set-MpPreference -DisableProtocolRecognition $false
 Get-MpComputerStatus | Select-Object AMProductVersion
 ```
 
-**Client VM: Target Version:** 4.18.25100.9006 or higher
+**Target Version:** 4.18.25100.9006 or higher
 
 ### View All Defender Preferences
 
@@ -264,6 +264,89 @@ Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IoavProtectionEn
 # View recent security events
 Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Message -Wrap
 ```
+
+### Test ASR Rules (Generate 1122 Events)
+
+> **⚠️ WARNING:** These tests are for LAB ENVIRONMENTS ONLY. Do not run these in production. These commands and scripts are designed to trigger ASR rules and generate Event ID 1122 (audit mode) events.
+
+**WMI-Based Process Creation (Triggers ASR Rules):**
+
+```powershell
+# Test 1: WMI to spawn calculator
+Get-WmiObject -Class Win32_Process -List | Invoke-WmiMethod -Name Create -ArgumentList "calc.exe"
+
+# Test 2: WMI to spawn notepad
+Get-WmiObject -Class Win32_Process -List | Invoke-WmiMethod -Name Create -ArgumentList "notepad.exe"
+
+# Test 3: CIM instance method
+Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine="calc.exe"}
+```
+
+**JavaScript Test (test.js):**
+
+Create a file named `test.js` with the following content:
+
+```javascript
+// test.js - Triggers ASR rule for JavaScript/VBScript launching executables
+var shell = new ActiveXObject("WScript.Shell");
+shell.Run("calc.exe");
+```
+
+Execute the script:
+
+```powershell
+# Run JavaScript test
+wscript.exe test.js
+```
+
+**VBScript Test (test.vbs):**
+
+Create a file named `test.vbs` with the following content:
+
+```vbscript
+' test.vbs - Triggers ASR rule for JavaScript/VBScript launching executables
+Set objShell = CreateObject("WScript.Shell")
+objShell.Run "calc.exe"
+```
+
+Execute the script:
+
+```powershell
+# Run VBScript test
+wscript.exe test.vbs
+```
+
+**Office Macro Test (if Office is installed):**
+
+Create a Word document with a macro that attempts to spawn a process:
+
+```vba
+Sub TestASR()
+    Shell "calc.exe", vbNormalFocus
+End Sub
+```
+
+**Expected ASR Rules Triggered:**
+
+These tests should trigger the following ASR rules (in audit mode):
+- **Block all Office applications from creating child processes** (GUID: D4F940AB-401B-4EFC-AADC-AD5F3C50688A)
+- **Block JavaScript or VBScript from launching downloaded executable content** (GUID: D3E037E1-3EB8-44C8-A917-57927947596D)
+- **Block process creations originating from PSExec and WMI commands** (GUID: D1E49AAC-8F56-4280-B9BA-993A6D77406C)
+
+**Verify Test Results:**
+
+```powershell
+# Check for ASR events (Event ID 1122 = audit mode)
+Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" -MaxEvents 50 | 
+    Where-Object {$_.Id -eq 1122} | 
+    Format-Table TimeCreated, Message -Wrap
+
+# Check specific ASR rule GUIDs in events
+Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | 
+    Where-Object {$_.Id -eq 1122 -and $_.Message -like "*D1E49AAC-8F56-4280-B9BA-993A6D77406C*"}
+```
+
+---
 
 ### Monitor ASR Events
 
