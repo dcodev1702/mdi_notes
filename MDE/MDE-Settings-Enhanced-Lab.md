@@ -379,9 +379,9 @@ You should see the following GPO folders:
 <img width="807" height="248" alt="image" src="https://github.com/user-attachments/assets/9e4e5512-97f7-4b24-ac6d-e7e81e2e706d" />
 
 
-### Import GPOs Using PowerShell Script
+### Import GPOs Using PowerShell
 
-Navigate to the scripts directory and run the import function at the bottom of the script:
+Navigate to the Download directory and perform the following:
 
 ```powershell
 # Downloading PowerShell script from dcodev1702 repo
