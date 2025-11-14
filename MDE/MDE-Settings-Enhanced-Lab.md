@@ -347,7 +347,7 @@ Ensure you have:
 - ✅ **Completed Domain Controller preparation** (see collapsible section above)
 - ✅ RSAT tools installed (from step 1 above)
 - ✅ Domain Administrator privileges
-- ✅ PowerShell [script](https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1) that will conduct the GPO Import
+- ✅ PowerShell [script](https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1) that will conduct the Domain Contorller GPO Import
 - ✅ The MDE GPO backup files ready for import
 
 ### Extract GPO Backup
