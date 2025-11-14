@@ -7,6 +7,123 @@
 
 ---
 
+<details>
+<summary><b>📋 Prerequisites and Assumptions</b></summary>
+
+<br>
+
+This workshop assumes you have the following environment and access already configured:
+
+### Microsoft Cloud Environment
+
+**Required Licenses and Access:**
+- ✅ **Microsoft Entra ID** (formerly Azure AD) tenant with administrative access
+- ✅ **Microsoft Defender XDR** suite with the following workloads enabled:
+  - **Microsoft Defender for Endpoint (MDE)** - P2 License
+  - **Microsoft Defender for Office 365 (MDO)** - P2 License
+  - **Microsoft Defender for Identity (MDI)**
+  - **Microsoft Defender for Cloud Apps (MDCA)**
+  - **Microsoft Entra ID Protection**
+- ✅ **Global Administrator** permissions to the tenant (required for configuration)
+
+**Portal Access:**
+- Microsoft Defender XDR Portal: https://security.microsoft.com
+- Microsoft Entra Admin Center: https://entra.microsoft.com
+- Microsoft Intune Admin Center: https://intune.microsoft.com (optional, for endpoint management)
+
+### Lab Infrastructure
+
+**Minimum Requirements:**
+
+1. **Domain Controller (DC):**
+   - Windows Server 2019 or 2022
+   - Active Directory Domain Services configured
+   - Domain: `contoso.local` (or your preferred domain)
+   - Onboarded to Microsoft Defender for Endpoint
+   - Network connectivity to the internet and client systems
+
+2. **Windows 11 Client (CLIENT01):**
+   - Windows 11 Pro or Enterprise (22H2 or later recommended)
+   - Domain-joined to `contoso.local`
+   - Microsoft Defender Antivirus platform, engine, and signatures **up to date**
+   - Onboarded to Microsoft Defender for Endpoint
+   - **Status:** Vanilla state (no prior MDE configurations applied)
+
+3. **Network Configuration:**
+   - Domain Controller and Client on the same subnet (or routable)
+   - Outbound internet connectivity for cloud services
+   - Microsoft Defender for Endpoint connectivity verified
+   - DNS resolution for `contoso.local` and internet domains
+
+### Deployment Resources
+
+**Need to Build a Lab Environment?**
+
+If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
+
+🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
+
+Blacksmith provides automated deployment templates for:
+- Windows Server Domain Controllers
+- Windows 10/11 clients
+- Active Directory environments
+- Pre-configured logging and detection scenarios
+- Integration with cloud security tools
+
+**Alternative Options:**
+- Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
+- Azure Virtual Machines with pre-configured templates
+- Hyper-V or VMware local lab deployments
+
+### Pre-Workshop Validation
+
+Before starting this workshop, verify the following:
+
+```powershell
+# On CLIENT01 - Verify MDE onboarding status
+Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimeProtectionEnabled
+
+# Check if device appears in Defender XDR portal
+# Navigate to: https://security.microsoft.com → Assets → Devices
+```
+
+**Expected State:**
+- ✅ Devices appear in Microsoft Defender XDR portal
+- ✅ Microsoft Defender Antivirus in **Active Mode** (not Passive or Disabled)
+- ✅ Real-time protection enabled
+- ✅ No existing ASR, Exploit Protection, or Network Protection configurations
+- ✅ Cloud-delivered protection enabled
+
+### What This Workshop Will Configure
+
+This guide will take your vanilla MDE environment and configure:
+- Attack Surface Reduction (ASR) rules in audit mode
+- Exploit Protection settings across common applications
+- Network Protection in audit mode
+- Enhanced audit logging for security events
+- Advanced threat protection features
+- Group Policy Objects for centralized management
+
+### Important Notes
+
+> **⚠️ Workshop Environment Only**  
+> This workshop is designed for **LAB and TRAINING environments**. Always test configurations in non-production environments before deploying to production systems.
+
+> **💡 Production Deployment Considerations**  
+> When moving to production, follow Microsoft's phased deployment approach:
+> 1. Enable audit mode for 30+ days
+> 2. Analyze telemetry and identify false positives
+> 3. Create necessary exclusions
+> 4. Pilot with a small user group
+> 5. Gradually roll out to production
+
+> **🔐 Administrative Access**  
+> You will need Domain Administrator or equivalent permissions to create and link Group Policy Objects throughout this workshop.
+
+</details>
+
+---
+
 ## 🎯 Lab Enhancements Overview
 
 This guide covers the comprehensive enhancements made to the Microsoft Defender for Endpoint (MDE) lab environment:
