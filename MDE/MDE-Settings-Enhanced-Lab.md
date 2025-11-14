@@ -218,10 +218,16 @@ Extract the GPO backup archive:
 
 ```powershell
 # Navigate to the GPOs directory
-cd MDE\GPOs
+cd 'C:\Users\administrator.CONTOSO\Downloads'
+
+# Download MDE GPOs from GitHub Repo
+Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/raw/main/MDE/GPOs/MDE-GPO-Backup.zip" -OutFile "MDE-GPO-Backup.zip"
+
+# Remove Mark-Of-The-Web from downloaded zip.
+Unblock-File -Path ".\MDE-GPO-Backup.zip"
 
 # Extract the backup archive
-Expand-Archive -Path "MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
+Expand-Archive -Path "MDE-GPO-Backup.zip" -DestinationPath $PWD -Force
 ```
 
 Verify extraction:
