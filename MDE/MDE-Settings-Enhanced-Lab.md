@@ -98,7 +98,7 @@ Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimePr
 
 **Update Microsoft Defender Antivirus Platform:**
 
-Ensure your MDAV platform is up to date before starting:
+**⚠️ Ensure your MDAV platform is up to date before starting! ⚠️**
 
 ```powershell
 # Check current platform version
