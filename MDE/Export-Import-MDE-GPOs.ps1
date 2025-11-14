@@ -1,0 +1,200 @@
+<#
+    Author: DCODEV1702 & Claude Sonnet 4.5
+    Date: 14 Nov 2025
+    
+    .SYNOPSIS
+    MDE GPO Backup and Import Script
+    
+    .DESCRIPTION
+    This script provides two functions to backup and import Microsoft Defender for Endpoint (MDE) 
+    related Group Policy Objects in an Active Directory environment.
+    
+    The script handles four specific GPOs:
+    - ASR-Audit-Mode-Workstations
+    - MDE Audit Policy - Workstations
+    - MDE Audit Policy - Domain Controllers
+    - Exploit-Protections-Workstations
+    
+    Backup-MDE-GPOs:
+    - Exports GPOs to a specified backup location
+    - Renames GUID backup folders to human-readable GPO names for easier identification
+    - Displays GUID to GPO name mapping
+    - Sets working directory to backup location
+    
+    Import-MDE-GPOs:
+    - Checks for and creates Workstations OU if it doesn't exist
+    - Moves any computers from default Computers container to Workstations OU
+    - Imports backed up GPOs
+    - Links GPOs to appropriate OUs (Domain Controllers or Workstations)
+    - Enforces all GPO links to ensure policies are applied
+    
+    .PARAMETER BackupPath
+    Path where GPO backups will be stored or retrieved from.
+    Default: Current directory with '\MDE-GPO-Backup' appended for backup function
+    Default: Current directory for import function
+    
+    .PARAMETER Domain
+    Target domain for GPO import operations.
+    Default: contoso.local
+    
+    .EXAMPLE
+    # Backup MDE GPOs to default location
+    Backup-MDE-GPOs
+    
+    .EXAMPLE
+    # Backup MDE GPOs to custom location
+    Backup-MDE-GPOs -BackupPath "C:\GPOBackups\MDE"
+    
+    .EXAMPLE
+    # Import MDE GPOs from current directory
+    Import-MDE-GPOs
+    
+    .EXAMPLE
+    # Import MDE GPOs from custom location and domain
+    Import-MDE-GPOs -BackupPath "C:\GPOBackups\MDE" -Domain "contoso.local"
+    
+    .NOTES
+    Requirements:
+    - RSAT Group Policy Management Tools (GroupPolicy PowerShell module)
+    - Active Directory PowerShell module
+    - Domain Administrator or equivalent permissions
+    - Run from Domain Controller or system with RSAT installed
+    
+    Install RSAT (Windows 10/11):
+    Add-WindowsCapability -Online -Name "Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0"
+    Add-WindowsCapability -Online -Name "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
+#>
+
+# Import required modules
+Import-Module GroupPolicy
+Import-Module ActiveDirectory
+
+
+function Backup-MDE-GPOs {
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$BackupPath = "$PWD\MDE-GPO-Backup"
+    )
+    
+    # Create backup directory if it doesn't exist
+    if (!(Test-Path $BackupPath)) {
+        New-Item -ItemType Directory -Path $BackupPath | Out-Null
+    }
+    
+    Write-Host "Backing up MDE GPOs to: $BackupPath" -ForegroundColor Cyan
+    
+    # Back up each GPO
+    Backup-GPO -Name "ASR-Audit-Mode-Workstations" -Path $BackupPath
+    Backup-GPO -Name "MDE Audit Policy - Workstations" -Path $BackupPath
+    Backup-GPO -Name "MDE Audit Policy - Domain Controllers" -Path $BackupPath
+    Backup-GPO -Name "Exploit-Protections-Workstations" -Path $BackupPath
+    
+    Write-Host "`nBackup complete! GUID Mapping:" -ForegroundColor Green
+    
+    # Display GUID mapping
+    Get-ChildItem $BackupPath -Directory | ForEach-Object {
+        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
+        [PSCustomObject]@{
+            BackupID = $_.Name
+            GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        }
+    } | Format-Table -AutoSize
+    
+    Write-Host "`nRenaming GUID folders to GPO names..." -ForegroundColor Cyan
+    
+    # Rename GUID folders to GPO names
+    Get-ChildItem $BackupPath -Directory | ForEach-Object {
+        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
+        $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        $SafeName = $GPOName -replace '[\\/:*?"<>|]', '-'
+        
+        Rename-Item -Path $_.FullName -NewName $SafeName
+        Write-Host "  Renamed: $SafeName" -ForegroundColor Green
+    }
+    
+    # Set location to backup path and list contents
+    Set-Location $BackupPath
+    Write-Host "`nCurrent location set to: $BackupPath" -ForegroundColor Yellow
+    Get-ChildItem | Format-Table Name, LastWriteTime -AutoSize
+}
+
+function Import-MDE-GPOs {
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$BackupPath = "$PWD",
+        
+        [Parameter(Mandatory=$false)]
+        [string]$Domain = "contoso.local"
+    )
+    
+    # Build DN paths
+    $DomainDN = "DC=" + ($Domain -split '\.' -join ',DC=')
+    $DCsOU = "OU=Domain Controllers,$DomainDN"
+    $WorkstationsOU = "OU=Workstations,$DomainDN"
+    $ComputersContainer = "CN=Computers,$DomainDN"
+    
+    Write-Host "Checking Workstations OU..." -ForegroundColor Cyan
+    
+    # Check if Workstations OU exists, create if not
+    try {
+        Get-ADOrganizationalUnit -Identity $WorkstationsOU -ErrorAction Stop | Out-Null
+        Write-Host "  Workstations OU exists." -ForegroundColor Green
+    } catch {
+        Write-Host "  Workstations OU does not exist. Creating..." -ForegroundColor Yellow
+        New-ADOrganizationalUnit -Name "Workstations" -Path $DomainDN
+        Write-Host "  Workstations OU created." -ForegroundColor Green
+    }
+    
+    Write-Host "`nChecking for computers in Computers container..." -ForegroundColor Cyan
+    
+    # Check for computers in Computers container and move them
+    $Computers = Get-ADComputer -Filter * -SearchBase $ComputersContainer -SearchScope OneLevel
+    
+    if ($Computers) {
+        Write-Host "  Found $($Computers.Count) computer(s) in Computers container. Moving to Workstations OU..." -ForegroundColor Yellow
+        
+        foreach ($Computer in $Computers) {
+            Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $WorkstationsOU
+            Write-Host "    Moved: $($Computer.Name)" -ForegroundColor Green
+        }
+        
+        Write-Host "  All computers moved to Workstations OU." -ForegroundColor Green
+    } else {
+        Write-Host "  No computers found in Computers container." -ForegroundColor Gray
+    }
+    
+    Write-Host "`nImporting GPOs..." -ForegroundColor Cyan
+    
+    # Import GPOs
+    Get-ChildItem $BackupPath -Directory | ForEach-Object {
+        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
+        $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        $BackupId = $_.Name  # Use folder name (GUID or renamed)
+        
+        Write-Host "`nProcessing: $GPOName" -ForegroundColor Yellow
+        
+        # Determine target OU
+        if ($GPOName -like "*Domain Controllers*") {
+            $TargetOU = $DCsOU
+            Write-Host "  Target OU: Domain Controllers" -ForegroundColor Gray
+        } else {
+            $TargetOU = $WorkstationsOU
+            Write-Host "  Target OU: Workstations" -ForegroundColor Gray
+        }
+        
+        # Import GPO
+        Import-GPO -BackupId $BackupId -TargetName $GPOName -Path $BackupPath -CreateIfNeeded
+        Write-Host "  GPO imported." -ForegroundColor Green
+        
+        # Link and enforce GPO
+        New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes -ErrorAction SilentlyContinue
+        Write-Host "  Linked and enforced to $TargetOU" -ForegroundColor Green
+    }
+    
+    Write-Host "`nAll GPOs imported and linked successfully!" -ForegroundColor Green
+}
+
+# Usage Examples:
+# Backup-MDE-GPOs
+
+# Import-MDE-GPOs
