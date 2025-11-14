@@ -23,7 +23,7 @@ This workshop assumes you have the following environment and access already conf
   - **Microsoft Defender for Office 365 (MDO)** - P2 License
   - **Microsoft Defender for Identity (MDI)**
   - **Microsoft Defender for Cloud Apps (MDCA)**
-  - **Microsoft Entra ID Protection** - P2 License
+  - **Microsoft Entra ID Protection**
 - ✅ **Global Administrator** permissions to the tenant (required for configuration)
 
 **Portal Access:**
@@ -98,7 +98,7 @@ Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimePr
 
 **Update Microsoft Defender Antivirus Platform:**
 
-**⚠️ Ensure your MDAV platform is up to date before starting! ⚠️**
+Ensure your MDAV platform is up to date before starting:
 
 ```powershell
 # Check current platform version
@@ -220,7 +220,7 @@ Extract the GPO backup archive:
 cd MDE\GPOs
 
 # Extract the backup archive
-Expand-Archive -Path "MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
+Expand-Archive -Path "__MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
 ```
 
 Verify extraction:
