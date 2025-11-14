@@ -109,7 +109,8 @@ Update-MpSignature
 🔗 **Windows 11 - Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
 
 **Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
-<img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/8cbf0788-dc34-448a-83d0-9d97fe81e060" />
+<img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/098f3abe-9a24-410e-91e0-2ab01158d9b1" />
+
 
 ---
 
