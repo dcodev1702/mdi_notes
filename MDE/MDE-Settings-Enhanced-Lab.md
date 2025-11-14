@@ -61,6 +61,7 @@ This workshop assumes you have the following environment and access already conf
 
 If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
 
+🔗 **MSFT Sentinel-2-Go:** https://github.com/OTRF/Microsoft-Sentinel2Go
 🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
 
 Blacksmith provides automated deployment templates for:
