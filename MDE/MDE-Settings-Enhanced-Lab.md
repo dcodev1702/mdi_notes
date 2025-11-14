@@ -203,14 +203,151 @@ This automated approach ensures consistent AD structure across lab environments 
 
 ---
 
+<details>
+<summary><b>🖥️ Domain Controller Preparation (Complete BEFORE Importing GPOs)</b></summary>
+
+<br>
+
+> **⚠️ IMPORTANT:** Complete these steps on your **Domain Controller** BEFORE importing GPOs from the Windows 11 client.
+
+The Exploit Protection GPO requires an XML configuration file that must be accessible via a network share. This section prepares your Domain Controller with the necessary files and share configuration.
+
+---
+
+### Step 1: Download Exploit Protection Configuration
+
+On your **Domain Controller**, download the ExploitProtectionLite.xml file from GitHub:
+
+```powershell
+# Download ExploitProtectionLite.xml from GitHub
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/main/MDE/GPOs/ExploitProtectionLite.xml" -OutFile "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+**Verify download:**
+
+```powershell
+# Check if file was downloaded
+Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+---
+
+### Step 2: Remove Mark-of-the-Web
+
+Remove the security zone identifier to prevent execution warnings:
+
+```powershell
+# Remove mark-of-the-web
+Unblock-File -Path "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+**Verify unblocking:**
+
+```powershell
+# Check if file is unblocked (should show no alternate data streams)
+Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Stream *
+```
+
+---
+
+### Step 3: Create SMB Share for GPO Configuration
+
+Create the shared folder that will be used by the Exploit Protection GPO:
+
+```powershell
+# Create GPO-Configs directory
+New-Item -Path "C:\GPO-Configs" -ItemType Directory -Force
+
+# Create SMB share with read access for Domain Computers
+New-SmbShare -Name "GPO-Configs" -Path "C:\GPO-Configs" -ReadAccess "Domain Computers"
+
+# Copy ExploitProtectionLite.xml to share
+Copy-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Destination "C:\GPO-Configs\"
+```
+
+---
+
+### Step 4: Verify Share Configuration
+
+```powershell
+# Verify SMB share was created
+Get-SmbShare -Name "GPO-Configs"
+
+# Verify share permissions
+Get-SmbShareAccess -Name "GPO-Configs"
+
+# Verify file exists in share
+Get-ChildItem "C:\GPO-Configs"
+```
+
+**Expected Output:**
+
+```
+Name         ScopeName Path           Description
+----         --------- ----           -----------
+GPO-Configs  *         C:\GPO-Configs
+
+
+Name        ScopeName AccountName          AccessControlType AccessRight
+----        --------- -----------          ----------------- -----------
+GPO-Configs *         CONTOSO\Domain Co... Allow             Read
+
+
+    Directory: C:\GPO-Configs
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        11/14/2025   2:30 PM          12345 ExploitProtectionLite.xml
+```
+
+---
+
+### Step 5: Test UNC Path Access
+
+Test that the UNC path is accessible:
+
+```powershell
+# Test UNC path (replace DC01 with your DC hostname)
+$DCHostname = $env:COMPUTERNAME
+$UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
+
+# Test access
+Test-Path $UNCPath
+
+# Display the UNC path for GPO configuration
+Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
+Write-Host $UNCPath -ForegroundColor Green
+```
+
+**Save this UNC path** - you'll need it when configuring the Exploit Protection GPO settings later.
+
+---
+
+### What's Next?
+
+After completing these Domain Controller preparation steps:
+
+1. ✅ **Proceed to the Windows 11 client** to import the MDE GPOs
+2. ✅ **After GPO import**, you'll configure the Exploit Protection GPO to use the UNC path: `\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml`
+
+The GPO configuration will be completed in the **Configure Exploit Protection GPO Settings** section below.
+
+---
+
+</details>
+
+---
+
 ## 📥 Import MDE Group Policy Objects
 
 ### Prerequisites
 
 Ensure you have:
-- RSAT tools installed (from step 1 above)
-- Domain Administrator privileges
-- The MDE GPO backup files ready for import
+- ✅ **Completed Domain Controller preparation** (see collapsible section above)
+- ✅ RSAT tools installed (from step 1 above)
+- ✅ Domain Administrator privileges
+- ✅ The MDE GPO backup files ready for import
 
 ### Extract GPO Backup
 
@@ -295,6 +432,113 @@ Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
 # Check Exploit Protection
 Get-ProcessMitigation -RegistryConfigFilePath
 ```
+
+---
+
+<details>
+<summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
+
+<br>
+
+After importing the GPOs, you must configure the **Exploit-Protections-Workstations** GPO to point to the XML configuration file on the Domain Controller.
+
+---
+
+### Open Group Policy Management
+
+On your **Domain Controller** or **Windows 11 client** with RSAT installed:
+
+```powershell
+# Open Group Policy Management Console
+gpmc.msc
+```
+
+---
+
+### Navigate to Exploit Protection Settings
+
+**Path in Group Policy Management Editor:**
+
+```
+Computer Configuration
+  └── Policies
+      └── Administrative Templates
+          └── Windows Components
+              └── Windows Defender Exploit Guard
+                  └── Exploit Protection
+```
+
+---
+
+### Configure the Policy Setting
+
+1. **Locate the policy:** `Use a common set of exploit protection settings`
+2. **Double-click** to open the setting
+3. **Select:** `Enabled`
+4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
+
+```
+\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml
+```
+
+**Example:**
+```
+\\DC01\GPO-Configs\ExploitProtectionLite.xml
+```
+
+5. **Click:** `Apply` → `OK`
+
+---
+
+### Verify Configuration
+
+**From Group Policy Editor:**
+
+```powershell
+# View the configured setting
+Get-GPO -Name "Exploit-Protections-Workstations" | Get-GPOReport -ReportType Xml | Select-String -Pattern "ExploitProtectionLite.xml"
+```
+
+**Force GPO update on workstation:**
+
+```powershell
+# Force immediate GPO refresh
+gpupdate /force
+```
+
+**Check if Exploit Protection is applied:**
+
+```powershell
+# View current exploit protection settings
+Get-ProcessMitigation -System
+
+# Check registry for configured file path
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exploit Guard\Exploit Protection" -ErrorAction SilentlyContinue
+```
+
+---
+
+### Troubleshooting
+
+**Issue:** GPO not applying to computers
+- **Solution:** Ensure computers are in the Workstations OU
+- **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
+
+**Issue:** Access denied to XML file
+- **Solution:** Verify SMB share permissions
+- **Command:** `Get-SmbShareAccess -Name "GPO-Configs"`
+
+**Issue:** XML file not found
+- **Solution:** Verify UNC path in GPO settings
+- **Test:** `Test-Path "\\DC01\GPO-Configs\ExploitProtectionLite.xml"`
+
+**Issue:** Exploit Protection not applying
+- **Solution:** Check Windows Defender service status
+- **Command:** `Get-Service -Name WinDefend`
+
+---
+
+</details>
 
 ---
 
@@ -571,12 +815,23 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | Where-O
 
 Use this checklist to track your progress:
 
+**Domain Controller Setup:**
+- [ ] Downloaded ExploitProtectionLite.xml from GitHub
+- [ ] Removed mark-of-the-web from XML file
+- [ ] Created C:\GPO-Configs directory
+- [ ] Created GPO-Configs SMB share
+- [ ] Copied XML file to share
+- [ ] Verified share permissions
+- [ ] Tested UNC path access
+
+**Windows 11 Client Setup:**
 - [ ] Installed RSAT tools on Windows 11
 - [ ] Extracted MDE-GPO-Backup.zip
 - [ ] Imported MDE GPOs using Import-MDE-GPOs script
 - [ ] Verified Workstations OU creation (automatic)
 - [ ] Verified computers moved to Workstations OU (automatic)
 - [ ] Verified GPO links to Workstations and Domain Controllers OUs
+- [ ] Configured Exploit Protection GPO with UNC path
 - [ ] Configured Network Protection in Audit Mode
 - [ ] Captured baseline settings with Get-MpPreference
 - [ ] Enabled Cloud Protection (MAPS - Advanced)
