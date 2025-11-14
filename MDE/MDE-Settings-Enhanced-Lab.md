@@ -53,96 +53,103 @@ Import-Module ActiveDirectory
 
 ## 📂 Active Directory Structure
 
-### Create Organizational Unit (OU)
+The import script will automatically handle the following AD configuration tasks:
 
-Create a dedicated Workstations OU:
+- **Creates Workstations OU** if it doesn't already exist at `OU=Workstations,DC=contoso,DC=local`
+- **Moves computers** from the default `CN=Computers` container to the Workstations OU
+- **Links GPOs** to appropriate OUs (Domain Controllers or Workstations)
+- **Enforces GPO links** to ensure policies are applied correctly
 
-```powershell
-# Create Workstations OU
-New-ADOrganizationalUnit -Name "Workstations" -Path "DC=contoso,DC=local"
-```
-
-### Move Computers to Workstations OU
-
-Move all computers from the default Computers container:
-
-```powershell
-# Move all computers to Workstations OU
-Get-ADComputer -Filter * -SearchBase "CN=Computers,DC=contoso,DC=local" | Move-ADObject -TargetPath "OU=Workstations,DC=contoso,DC=local"
-```
+This automated approach ensures consistent AD structure across lab environments and simplifies the deployment process.
 
 ---
 
-## 📊 Configure MDE Audit Policy
+## 📥 Import MDE Group Policy Objects
 
-### Deploy Audit Policy GPOs
+### Prerequisites
 
-**For Workstations:**
+Ensure you have:
+- RSAT tools installed (from step 1 above)
+- Domain Administrator privileges
+- The MDE GPO backup files ready for import
 
-```powershell
-.\Create-MDE-AuditPolicyGPO.ps1 -GPOName "MDE Audit Policy - Workstations" -TargetOU "OU=Workstations,DC=contoso,DC=local"
-```
+### Extract GPO Backup
 
-**For Domain Controllers:**
-
-```powershell
-.\Create-MDE-AuditPolicyGPO.ps1 -GPOName "MDE Audit Policy - Domain Controllers" -TargetOU "OU=Domain Controllers,DC=contoso,DC=local"
-```
-
-### Configure Security Event Log Size
-
-Increase Security log size to 1GB (1048576 KB):
-
-**Workstations GPO:**
+Extract the GPO backup archive:
 
 ```powershell
-Set-GPRegistryValue -Name "MDE Audit Policy - Workstations" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security" -ValueName "MaxSize" -Type DWord -Value 1048576
+# Navigate to the GPOs directory
+cd MDE\GPOs
+
+# Extract the backup archive
+Expand-Archive -Path "__MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
 ```
 
-**Domain Controllers GPO:**
+Verify extraction:
 
 ```powershell
-Set-GPRegistryValue -Name "MDE Audit Policy - Domain Controllers" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security" -ValueName "MaxSize" -Type DWord -Value 1048576
+# List extracted GPOs
+Get-ChildItem .\MDE-GPO-Backup
 ```
 
-### Apply and Verify
+You should see the following GPO folders:
+- ASR-Audit-Mode-Workstations
+- MDE Audit Policy - Workstations
+- MDE Audit Policy - Domain Controllers
+- Exploit-Protections-Workstations
 
-**On client computers, force GPO update:**
+### Import GPOs Using Script
+
+Navigate to the scripts directory and run the import function:
+
+```powershell
+# Navigate to scripts directory
+cd ..\scripts
+
+# Import the script
+. .\Export-Import-MDE-GPOs.ps1
+
+# Import all MDE GPOs
+Import-MDE-GPOs -BackupPath "..\GPOs\MDE-GPO-Backup" -Domain "contoso.local"
+```
+
+The script will automatically:
+1. ✅ Create the Workstations OU (if needed)
+2. ✅ Move computers from Computers container to Workstations OU
+3. ✅ Import all four MDE GPOs
+4. ✅ Link GPOs to appropriate OUs
+5. ✅ Enforce all GPO links
+
+### Verify GPO Import
+
+**Check GPO links:**
+
+```powershell
+# List GPOs linked to Workstations OU
+Get-GPInheritance -Target "OU=Workstations,DC=contoso,DC=local"
+
+# List GPOs linked to Domain Controllers OU
+Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
+```
+
+**Force GPO update on client computers:**
 
 ```powershell
 gpupdate /force
 ```
 
-**Verify audit settings:**
+**Verify imported settings:**
 
 ```powershell
+# Check audit policy
 auditpol /get /category:*
+
+# Check ASR rules
+Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
+
+# Check Exploit Protection
+Get-ProcessMitigation -RegistryConfigFilePath
 ```
-
----
-
-## 🛡️ Configure Attack Surface Reduction (ASR)
-
-### Deploy ASR in Audit Mode
-
-Run the ASR configuration script (creates and links GPO automatically):
-
-```powershell
-.\Configure-ASR-AuditMode.ps1
-```
-
-### Monitor ASR Events
-
-**View ASR events locally:**
-
-```powershell
-Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | Where-Object {$_.Id -eq 1121 -or $_.Id -eq 1122}
-```
-
-**View in Microsoft Defender XDR Portal:**
-- Navigate to: **Assets → Devices → CLIENT01 → Incidents & Timeline**
-
-> **📝 Note:** Event ID 1121 = ASR rule triggered (would block), Event ID 1122 = ASR rule in audit mode
 
 ---
 
@@ -173,41 +180,6 @@ Get-MpPreference | Select-Object EnableNetworkProtection
 - `0` = Disabled
 - `1` = Enabled (Block mode)
 - `2` = AuditMode
-
----
-
-## 🔒 Configure Exploit Guard (Exploit Protection)
-
-### Setup on Domain Controller
-
-**1. Create SMB Share for GPO Configurations:**
-
-```powershell
-New-SmbShare -Name "GPO-Configs" -Path "C:\GPO-Configs" -ReadAccess "Domain Computers"
-```
-
-**2. Copy Exploit Protection XML:**
-
-Copy your `ExploitGuard-AuditMode.xml` file to the share:
-
-```powershell
-Copy-Item -Path ".\ExploitGuard-AuditMode.xml" -Destination "C:\GPO-Configs\"
-```
-
-### Deploy via GPO
-
-**Method 1: Via Group Policy Preferences**
-
-1. Open **Group Policy Management Console**
-2. Edit your workstation GPO
-3. Navigate to: `Computer Configuration → Preferences → Windows Settings → Registry`
-4. Create a new registry item pointing to the XML file path
-
-**Method 2: Via PowerShell (Local Testing)**
-
-```powershell
-Set-ProcessMitigation -PolicyFilePath "\\DC-1\GPO-Configs\ExploitGuard-AuditMode.xml"
-```
 
 ---
 
@@ -272,7 +244,7 @@ Set-MpPreference -DisableProtocolRecognition $false
 Get-MpComputerStatus | Select-Object AMProductVersion
 ```
 
-**Target Version:** 4.18.25100.9006 or higher
+**Client VM: Target Version:** 4.18.25100.9006 or higher
 
 ### View All Defender Preferences
 
@@ -293,6 +265,19 @@ Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IoavProtectionEn
 Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Message -Wrap
 ```
 
+### Monitor ASR Events
+
+**View ASR events locally:**
+
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | Where-Object {$_.Id -eq 1121 -or $_.Id -eq 1122}
+```
+
+**View in Microsoft Defender XDR Portal:**
+- Navigate to: **Assets → Devices → CLIENT01 → Incidents & Timeline**
+
+> **📝 Note:** Event ID 1121 = ASR rule triggered (would block), Event ID 1122 = ASR rule in audit mode
+
 ---
 
 ## 📚 Reference Links
@@ -311,23 +296,22 @@ Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Mes
 Use this checklist to track your progress:
 
 - [ ] Installed RSAT tools on Windows 11
-- [ ] Created Workstations OU structure
-- [ ] Moved computers to Workstations OU
-- [ ] Deployed MDE Audit Policy GPO (Workstations)
-- [ ] Deployed MDE Audit Policy GPO (Domain Controllers)
-- [ ] Configured Security Event Log to 1GB
-- [ ] Deployed ASR rules in Audit Mode
+- [ ] Extracted MDE-GPO-Backup.zip
+- [ ] Imported MDE GPOs using Import-MDE-GPOs script
+- [ ] Verified Workstations OU creation (automatic)
+- [ ] Verified computers moved to Workstations OU (automatic)
+- [ ] Verified GPO links to Workstations and Domain Controllers OUs
 - [ ] Configured Network Protection in Audit Mode
-- [ ] Deployed Exploit Guard in Audit Mode
 - [ ] Enabled Cloud Protection (MAPS - Advanced)
 - [ ] Enabled Behavioral Monitoring
 - [ ] Enabled Script Scanning
 - [ ] Enabled Archive Scanning
 - [ ] Configured Cloud Block Level
-- [ ] Verified all GPOs applied (`gpupdate /force`)
+- [ ] Forced GPO update on clients (`gpupdate /force`)
 - [ ] Verified audit policy (`auditpol /get /category:*`)
 - [ ] Checked MDE platform version
 - [ ] Monitored ASR events
+- [ ] Verified Security Event Log size (1GB)
 
 ---
 
