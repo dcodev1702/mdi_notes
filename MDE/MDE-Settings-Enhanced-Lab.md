@@ -383,17 +383,17 @@ You should see the following GPO folders:
 
 ### Import GPOs Using Script
 
-Navigate to the scripts directory and run the import function:
+Navigate to the scripts directory and run the import function at the bottom of the script:
 
 ```powershell
 # Navigate to scripts directory
 cd ..\scripts
 
 # Import the script
-. .\Export-Import-MDE-GPOs.ps1
+.\Export-Import-MDE-GPOs.ps1
 
 # Import all MDE GPOs
-Import-MDE-GPOs -BackupPath "..\GPOs\MDE-GPO-Backup" -Domain "contoso.local"
+Import-MDE-GPOs -BackupPath "$PWD\GPOs\MDE-GPO-Backup"
 ```
 
 The script will automatically:
@@ -422,6 +422,7 @@ gpupdate /force
 ```
 
 **Verify imported settings:**
+<img width="1147" height="803" alt="image" src="https://github.com/user-attachments/assets/cacfc95f-3e92-416f-a33e-a26520164d6f" />
 
 ```powershell
 # Check audit policy
@@ -479,12 +480,12 @@ Computer Configuration
 4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
 
 ```
-\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml
+\\DC\GPO-Configs\ExploitProtectionLite.xml
 ```
 
 **Example:**
 ```
-\\DC01\GPO-Configs\ExploitProtectionLite.xml
+\\DC\GPO-Configs\ExploitProtectionLite.xml
 ```
 
 5. **Click:** `Apply` → `OK`
