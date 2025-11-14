@@ -838,6 +838,8 @@ Use this checklist to track your progress:
 - [ ] Verified GPO links to Workstations and Domain Controllers OUs
 - [ ] Configured Exploit Protection GPO with UNC path (ExploitProtectionLite.xml)
 - [ ] Configured Network Protection in Audit Mode
+- [ ] Network Inspection System: Protocol Recognition
+- [ ] Network Inspection System: Datagram Processing for Network Protection
 - [ ] Captured baseline settings with Get-MpPreference
 - [ ] Enabled Cloud Protection (Microsoft Active Protection Service - MAPS: Advanced)
 - [ ] Enabled Behavioral Monitoring
