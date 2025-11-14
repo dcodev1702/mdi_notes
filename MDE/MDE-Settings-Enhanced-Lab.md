@@ -839,7 +839,7 @@ Use this checklist to track your progress:
 - [ ] Configured Exploit Protection GPO with UNC path
 - [ ] Configured Network Protection in Audit Mode
 - [ ] Captured baseline settings with Get-MpPreference
-- [ ] Enabled Cloud Protection (MAPS - Advanced)
+- [ ] Enabled Cloud Protection (Microsoft Active Protection Service - MAPS: Advanced)
 - [ ] Enabled Behavioral Monitoring
 - [ ] Enabled Script Scanning
 - [ ] Enabled Archive Scanning
