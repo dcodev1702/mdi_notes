@@ -26,6 +26,7 @@
     - Imports backed up GPOs
     - Links GPOs to appropriate OUs (Domain Controllers or Workstations)
     - Enforces all GPO links to ensure policies are applied
+    - Forces Group Policy update on local machine
     
     .PARAMETER BackupPath
     Path where GPO backups will be stored or retrieved from.
@@ -172,12 +173,34 @@ function Import-MDE-GPOs {
         Import-GPO -BackupId $BackupId -TargetName $GPOName -Path $BackupPath -CreateIfNeeded
         Write-Host "  GPO imported." -ForegroundColor Green
         
-        # Link and enforce GPO
-        New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes -ErrorAction SilentlyContinue
-        Write-Host "  Linked and enforced to $TargetOU" -ForegroundColor Green
+        # Link and enforce GPO with improved error handling
+        try {
+            $ExistingLink = Get-GPInheritance -Target $TargetOU | 
+                Select-Object -ExpandProperty GpoLinks | 
+                Where-Object { $_.DisplayName -eq $GPOName }
+            
+            if ($ExistingLink) {
+                Write-Host "  GPO already linked to $TargetOU" -ForegroundColor Yellow
+            } else {
+                New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes -ErrorAction Stop
+                Write-Host "  Linked and enforced to $TargetOU" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "  ERROR: Failed to link GPO to $TargetOU" -ForegroundColor Red
+            Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
     }
     
-    Write-Host "`nAll GPOs imported and linked successfully!" -ForegroundColor Green
+    Write-Host "`nAll GPOs imported!" -ForegroundColor Green
+    Write-Host "`nForcing Group Policy update..." -ForegroundColor Cyan
+    
+    # Force Group Policy update
+    try {
+        gpupdate /force
+        Write-Host "`nGroup Policy update completed successfully!" -ForegroundColor Green
+    } catch {
+        Write-Host "`nWARNING: gpupdate failed. You may need to run 'gpupdate /force' manually." -ForegroundColor Yellow
+    }
 }
 
 # Usage Examples:
