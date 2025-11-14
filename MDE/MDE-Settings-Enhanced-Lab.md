@@ -836,11 +836,14 @@ Use this checklist to track your progress:
 - [ ] Verified Workstations OU creation (automatic)
 - [ ] Verified computers moved to Workstations OU (automatic)
 - [ ] Verified GPO links to Workstations and Domain Controllers OUs
-- [ ] Configured Exploit Protection GPO with UNC path
+- [ ] Configured Exploit Protection GPO with UNC path (ExploitProtectionLite.xml)
 - [ ] Configured Network Protection in Audit Mode
 - [ ] Captured baseline settings with Get-MpPreference
 - [ ] Enabled Cloud Protection (Microsoft Active Protection Service - MAPS: Advanced)
 - [ ] Enabled Behavioral Monitoring
+- [ ] Enabled Process Scanning
+- [ ] Enabled File Hash Computation
+- [ ] Enabled File Download & Attachment Scanning
 - [ ] Enabled Script Scanning
 - [ ] Enabled Archive Scanning
 - [ ] Configured Cloud Block Level
