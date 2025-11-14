@@ -376,10 +376,8 @@ Get-ChildItem .\MDE-GPO-Backup
 ```
 
 You should see the following GPO folders:
-- ASR-Audit-Mode-Workstations
-- MDE Audit Policy - Workstations
-- MDE Audit Policy - Domain Controllers
-- Exploit-Protections-Workstations
+<img width="807" height="248" alt="image" src="https://github.com/user-attachments/assets/9e4e5512-97f7-4b24-ac6d-e7e81e2e706d" />
+
 
 ### Import GPOs Using PowerShell Script
 
