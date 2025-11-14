@@ -65,7 +65,7 @@ If you need to provision your lab infrastructure from scratch, consider using th
 
 Blacksmith provides automated deployment templates for:
 - Windows Server Domain Controllers
-- Windows 11 clients
+- Windows 10/11 clients
 - Active Directory environments
 - Pre-configured logging and detection scenarios
 - Integration with cloud security tools
@@ -106,11 +106,9 @@ Get-MpComputerStatus | Select-Object AMProductVersion
 Update-MpSignature
 ```
 
-🔗 **Windows 11 - Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
+🔗 **Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
 
-**Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
-<img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/098f3abe-9a24-410e-91e0-2ab01158d9b1" />
-
+**Target Version:** 4.18.25100.9006 or higher
 
 ---
 
@@ -402,7 +400,10 @@ Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IoavProtectionEn
 Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Message -Wrap
 ```
 
-### Test ASR Rules (Generate 1122 Events)
+<details>
+<summary><b>🧪 Test ASR Rules (Generate 1122 Events)</b></summary>
+
+<br>
 
 > **⚠️ WARNING:** These tests are for LAB ENVIRONMENTS ONLY. Do not run these in production. These commands and scripts are designed to trigger ASR rules and generate Event ID 1122 (audit mode) events.
 
@@ -482,6 +483,8 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" -MaxEvent
 Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | 
     Where-Object {$_.Id -eq 1122 -and $_.Message -like "*D1E49AAC-8F56-4280-B9BA-993A6D77406C*"}
 ```
+
+</details>
 
 ---
 
