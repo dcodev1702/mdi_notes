@@ -23,7 +23,7 @@ This workshop assumes you have the following environment and access already conf
   - **Microsoft Defender for Office 365 (MDO)** - P2 License
   - **Microsoft Defender for Identity (MDI)**
   - **Microsoft Defender for Cloud Apps (MDCA)**
-  - **Microsoft Entra ID Protection**
+  - **Microsoft Entra ID Protection (P2)**
 - ✅ **Global Administrator** permissions to the tenant (required for configuration)
 
 **Portal Access:**
