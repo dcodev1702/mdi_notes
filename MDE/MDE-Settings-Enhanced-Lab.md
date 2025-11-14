@@ -386,7 +386,7 @@ Navigate to the Download directory and perform the following:
 
 ```powershell
 # Downloading PowerShell script from dcodev1702 repo
-Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "Export-Import-MDE-GPOs.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "Export-Import-MDE-GPOs.ps1"
 
 # Remove Mark-Of-The-Web from downloaded zip.
 Unblock-File -Path ".\Export-Import-MDE-GPOs.ps1"
