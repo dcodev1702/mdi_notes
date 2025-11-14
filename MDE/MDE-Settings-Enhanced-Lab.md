@@ -44,7 +44,8 @@ Get-WindowsCapability -Name RSAT* -Online | Where-Object {$_.State -eq "Installe
 Import Active Directory module:
 
 ```powershell
-# Import Active Directory Module
+# Import required modules
+Import-Module GroupPolicy
 Import-Module ActiveDirectory
 ```
 
