@@ -196,7 +196,7 @@ The import script will automatically handle the following AD configuration tasks
 
 - **Creates Workstations OU** if it doesn't already exist at `OU=Workstations,DC=contoso,DC=local`
 - **Moves computers** from the default `CN=Computers` container to the Workstations OU
-- **Links Four MDE GPOs** to appropriate OUs (Domain Controllers or Workstations)
+- **Imports & Links Four MDE GPOs** to appropriate OUs (Domain Controllers or Workstations)
 - **Enforces GPO links** to ensure policies are applied correctly
 
 This automated approach ensures consistent AD structure across lab environments and simplifies the deployment process.
