@@ -65,7 +65,7 @@ If you need to provision your lab infrastructure from scratch, consider using th
 
 Blacksmith provides automated deployment templates for:
 - Windows Server Domain Controllers
-- Windows 10/11 clients
+- Windows 11 clients
 - Active Directory environments
 - Pre-configured logging and detection scenarios
 - Integration with cloud security tools
@@ -106,9 +106,9 @@ Get-MpComputerStatus | Select-Object AMProductVersion
 Update-MpSignature
 ```
 
-🔗 **Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
+🔗 **Windows 11 - Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
 
-**Target Version:** 4.18.25100.9006 or higher
+**Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
 
 ---
 
