@@ -323,6 +323,46 @@ Get-MpPreference | Select-Object EnableNetworkProtection
 
 ## 🔬 Advanced Protection Features
 
+### Check Current Protection Settings (Baseline)
+
+Before making any changes, document your current Microsoft Defender Antivirus settings:
+
+```powershell
+# View all current Defender preferences
+Get-MpPreference | Format-List
+
+# View specific protection settings
+Get-MpPreference | Select-Object `
+    MAPSReporting, `
+    DisableBehaviorMonitoring, `
+    DisableIOAVProtection, `
+    DisableScriptScanning, `
+    DisableArchiveScanning, `
+    DisableEmailScanning, `
+    DisablePackedExeScanning, `
+    EnableFileHashComputation, `
+    CloudBlockLevel, `
+    CloudExtendedTimeout, `
+    DisableInboundConnectionFiltering, `
+    DisableProtocolRecognition, `
+    EnableNetworkProtection
+
+# View computer status
+Get-MpComputerStatus | Select-Object `
+    RealTimeProtectionEnabled, `
+    IoavProtectionEnabled, `
+    BehaviorMonitorEnabled, `
+    AntivirusEnabled, `
+    AMProductVersion
+```
+
+> **💡 Pro Tip:** Save this baseline output to a file for comparison after configuration:
+> ```powershell
+> Get-MpPreference | Out-File -FilePath "C:\Temp\MDE-Baseline-Before.txt"
+> ```
+
+---
+
 ### Enable Behavioral Monitoring and Cloud Protection
 
 The following features should be configured via GPO or locally:
@@ -517,7 +557,10 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | Where-O
 
 ---
 
-## ✅ Lab Enhancement Checklist
+<details>
+<summary><b>✅ Lab Enhancement Checklist</b></summary>
+
+<br>
 
 Use this checklist to track your progress:
 
@@ -528,6 +571,7 @@ Use this checklist to track your progress:
 - [ ] Verified computers moved to Workstations OU (automatic)
 - [ ] Verified GPO links to Workstations and Domain Controllers OUs
 - [ ] Configured Network Protection in Audit Mode
+- [ ] Captured baseline settings with Get-MpPreference
 - [ ] Enabled Cloud Protection (MAPS - Advanced)
 - [ ] Enabled Behavioral Monitoring
 - [ ] Enabled Script Scanning
@@ -538,6 +582,8 @@ Use this checklist to track your progress:
 - [ ] Checked MDE platform version
 - [ ] Monitored ASR events
 - [ ] Verified Security Event Log size (1GB)
+
+</details>
 
 ---
 
