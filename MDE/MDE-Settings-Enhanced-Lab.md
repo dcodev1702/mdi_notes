@@ -350,9 +350,9 @@ Ensure you have:
 - ✅ PowerShell [script](https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1) that will conduct the Domain Contorller GPO Import
 - ✅ The MDE GPO backup files ready for import
 
-### Extract GPO Backup
+### Download & Extract GPO Backup
 
-Extract the GPO backup archive:
+Download & Extract the GPO backup archive:
 
 ```powershell
 # Navigate to the GPOs directory
@@ -381,13 +381,12 @@ You should see the following GPO folders:
 - MDE Audit Policy - Domain Controllers
 - Exploit-Protections-Workstations
 
-### Import GPOs Using Script
+### Import GPOs Using PowerShell Script
 
 Navigate to the scripts directory and run the import function at the bottom of the script:
 
 ```powershell
-# Navigate to scripts directory
-
+# Downloading PowerShell script from dcodev1702 repo
 Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "Export-Import-MDE-GPOs.ps1"
 
 # Remove Mark-Of-The-Web from downloaded zip.
@@ -395,13 +394,14 @@ Unblock-File -Path ".\Export-Import-MDE-GPOs.ps1"
 ```
 
 ```powershell
-# Ensure the Import function and Backup path is uncommented and then run the script!
+# Inside the script, ensure the Import function and Backup path is uncommented and then run the script!
 # --> Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
 
+# IMPORT MDE GPO's TO THE DC!
 .\Export-Import-MDE-GPOs.ps1
 ```
 
-The script will automatically:
+The PowerShell script [Export-Import-MDE-GPOs.ps1] will automatically perform the following tasks:
 1. ✅ Create the Workstations OU (if needed)
 2. ✅ Move computers from Computers container to Workstations OU
 3. ✅ Import all four MDE GPOs
