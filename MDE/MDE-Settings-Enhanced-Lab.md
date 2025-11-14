@@ -161,13 +161,14 @@ This guide covers the comprehensive enhancements made to the Microsoft Defender 
 
 ---
 
-## 🔧 Initial Setup
+## 🔧 Initial Setup (Windows 11 - Client VM)
 
 ### 1. Install RSAT Tools for Windows 11
 
 Install all Remote Server Administration Tools:
 
 ```powershell
+# Open a PS Shell as Administrator
 # Install all RSAT capabilities
 Get-WindowsCapability -Name RSAT* -Online | Add-WindowsCapability -Online
 ```
