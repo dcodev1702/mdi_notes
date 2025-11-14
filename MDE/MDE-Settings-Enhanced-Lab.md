@@ -163,7 +163,44 @@ This guide covers the comprehensive enhancements made to the Microsoft Defender 
 
 ## 🔧 Initial Setup (Windows 11 - Client VM)
 
-### 1. Install RSAT Tools for Windows 11
+### 1. Increase Security Event Log Size
+
+Before installing RSAT tools and importing GPOs, increase the Security Event Log size to accommodate enhanced audit logging.
+
+**Increase Security Event Log from 20 MB to 1 GB:**
+
+```powershell
+# Open PowerShell as Administrator
+# Increase Security Event Log to 1 GB (1073741824 bytes)
+wevtutil sl Security /ms:1073741824
+```
+
+**Verify the change:**
+
+```powershell
+# Check current Security log size
+wevtutil gl Security | Select-String -Pattern "maxSize"
+```
+
+**Expected Output:**
+```
+maxSize: 1073741824
+```
+
+**Alternative method using GUI:**
+
+1. Open **Event Viewer** (`eventvwr.msc`)
+2. Navigate to **Windows Logs → Security**
+3. Right-click **Security** → **Properties**
+4. Change **Maximum log size (KB)** to `1048576` (1 GB)
+5. Click **OK**
+
+> **💡 Why increase the log size?**  
+> Enhanced audit policies generate significantly more events. A larger log size ensures you don't lose critical security events due to log rotation.
+
+---
+
+### 2. Install RSAT Tools for Windows 11
 
 Install all Remote Server Administration Tools:
 
@@ -273,10 +310,10 @@ Copy-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Destination "C
 # Verify SMB share was created
 Get-SmbShare -Name "GPO-Configs"
 
-# Verify share permissions
+# View share permissions
 Get-SmbShareAccess -Name "GPO-Configs"
 
-# Verify file exists in share
+# Verify file exists in local directory
 Get-ChildItem "C:\GPO-Configs"
 ```
 
@@ -303,23 +340,35 @@ Mode                 LastWriteTime         Length Name
 
 ---
 
-### Step 5: Test UNC Path Access
+### Step 5: Verify Configuration
 
-Test that the UNC path is accessible:
+Verify the file was copied successfully and display the UNC path for GPO configuration:
 
 ```powershell
-# Test UNC path
-$DCHostname = $env:COMPUTERNAME
-$UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
+# Verify file exists locally
+$LocalPath = "C:\GPO-Configs\ExploitProtectionLite.xml"
 
-# TODO: FIX THIS TEST - IT DOES NOT WORK WITH USER ACCOUNTS NOR SHOULD IT.
-# Test access
-Test-Path $UNCPath
-
-# Display the UNC path for GPO configuration
-Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
-Write-Host $UNCPath -ForegroundColor Green
+if (Test-Path $LocalPath) {
+    Write-Host "`nFile successfully copied to share location!" -ForegroundColor Green
+    Write-Host "Local Path: $LocalPath" -ForegroundColor Cyan
+    
+    # Display the UNC path for GPO configuration
+    $DCHostname = $env:COMPUTERNAME
+    $UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
+    Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
+    Write-Host $UNCPath -ForegroundColor Green
+    Write-Host "`nNote: Domain-joined computers will be able to access this path." -ForegroundColor Yellow
+    Write-Host "User accounts (including Administrator) cannot access this share - this is expected!" -ForegroundColor Yellow
+} else {
+    Write-Host "`nERROR: File not found at $LocalPath" -ForegroundColor Red
+}
 ```
+
+> **📝 Important Notes:**
+> - The share is configured for **Domain Computers only** - user accounts cannot access it
+> - Testing the UNC path as Administrator will fail with "Access Denied" - **this is expected and correct**
+> - Domain-joined computers will be able to access the file when the GPO applies
+> - The actual verification happens when GPO processes and computers retrieve the XML file
 
 **Save this UNC path** - you'll need it when configuring the Exploit Protection GPO settings later.
 
@@ -348,12 +397,11 @@ Ensure you have:
 - ✅ **Completed Domain Controller preparation** (see collapsible section above)
 - ✅ RSAT tools installed (from step 1 above)
 - ✅ Domain Administrator privileges
-- ✅ PowerShell [script](https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1) that will conduct the Domain Contorller GPO Import
 - ✅ The MDE GPO backup files ready for import
 
-### Download & Extract GPO Backup
+### Extract GPO Backup
 
-Download & Extract the GPO backup archive:
+Extract the GPO backup archive:
 
 ```powershell
 # Navigate to the GPOs directory
@@ -378,7 +426,6 @@ Get-ChildItem .\MDE-GPO-Backup
 
 You should see the following GPO folders:
 <img width="807" height="248" alt="image" src="https://github.com/user-attachments/assets/9e4e5512-97f7-4b24-ac6d-e7e81e2e706d" />
-
 
 ### Import GPOs Using PowerShell
 
@@ -530,13 +577,15 @@ Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Explo
 - **Solution:** Ensure computers are in the Workstations OU
 - **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
 
-**Issue:** Access denied to XML file
-- **Solution:** Verify SMB share permissions
-- **Command:** `Get-SmbShareAccess -Name "GPO-Configs"`
+**Issue:** "Access denied" when testing UNC path as Administrator
+- **Solution:** This is **expected behavior** - the share is restricted to Domain Computers only
+- **Verification:** Confirm `Get-SmbShareAccess -Name "GPO-Configs"` shows only "Domain Computers"
+- **Test:** The actual test happens when GPO applies to domain-joined computers
 
-**Issue:** XML file not found
-- **Solution:** Verify UNC path in GPO settings
-- **Test:** `Test-Path "\\DC01\GPO-Configs\ExploitProtectionLite.xml"`
+**Issue:** XML file not found by GPO
+- **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
+- **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
+- **Verify UNC syntax:** Ensure GPO uses `\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml`
 
 **Issue:** Exploit Protection not applying
 - **Solution:** Check Windows Defender service status
@@ -825,10 +874,11 @@ Use this checklist to track your progress:
 - [ ] Downloaded ExploitProtectionLite.xml from GitHub
 - [ ] Removed mark-of-the-web from XML file
 - [ ] Created C:\GPO-Configs directory
-- [ ] Created GPO-Configs SMB share
+- [ ] Created GPO-Configs SMB share (Domain Computers only)
 - [ ] Copied XML file to share
-- [ ] Verified share permissions
-- [ ] Tested UNC path access
+- [ ] Verified share permissions show "Domain Computers"
+- [ ] Verified file exists at local path C:\GPO-Configs\ExploitProtectionLite.xml
+- [ ] Noted the UNC path for GPO configuration
 
 **Windows 11 Client Setup:**
 - [ ] Installed RSAT tools on Windows 11
@@ -855,6 +905,7 @@ Use this checklist to track your progress:
 - [ ] Checked MDE platform version
 - [ ] Monitored ASR events
 - [ ] Verified Security Event Log size (1GB)
+
 
 </details>
 
