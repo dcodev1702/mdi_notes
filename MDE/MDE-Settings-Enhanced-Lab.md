@@ -312,6 +312,7 @@ Test that the UNC path is accessible:
 $DCHostname = $env:COMPUTERNAME
 $UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
 
+# TODO: FIX THIS TEST - IT DOES NOT WORK WITH USER ACCOUNTS NOR SHOULD IT.
 # Test access
 Test-Path $UNCPath
 
