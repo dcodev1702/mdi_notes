@@ -220,7 +220,7 @@ Extract the GPO backup archive:
 cd MDE\GPOs
 
 # Extract the backup archive
-Expand-Archive -Path "__MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
+Expand-Archive -Path "MDE-GPO-Backup.zip" -DestinationPath ".\MDE-GPO-Backup" -Force
 ```
 
 Verify extraction:
