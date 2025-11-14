@@ -197,4 +197,4 @@ function Import-MDE-GPOs {
 # Usage Examples:
 # Backup-MDE-GPOs
 
-# Import-MDE-GPOs
+Import-MDE-GPOs
