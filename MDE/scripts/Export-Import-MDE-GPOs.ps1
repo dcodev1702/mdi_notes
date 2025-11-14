@@ -17,8 +17,7 @@
     
     Backup-MDE-GPOs:
     - Exports GPOs to a specified backup location
-    - Renames GUID backup folders to human-readable GPO names for easier identification
-    - Displays GUID to GPO name mapping
+    - Displays GUID to GPO name mapping for reference
     - Sets working directory to backup location
     
     Import-MDE-GPOs:
@@ -69,7 +68,6 @@
 Import-Module GroupPolicy
 Import-Module ActiveDirectory
 
-
 function Backup-MDE-GPOs {
     param(
         [Parameter(Mandatory=$false)]
@@ -91,26 +89,14 @@ function Backup-MDE-GPOs {
     
     Write-Host "`nBackup complete! GUID Mapping:" -ForegroundColor Green
     
-    # Display GUID mapping
+    # Display GUID mapping for reference
     Get-ChildItem $BackupPath -Directory | ForEach-Object {
         [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
         [PSCustomObject]@{
             BackupID = $_.Name
-            GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+            GPOName  = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
         }
     } | Format-Table -AutoSize
-    
-    Write-Host "`nRenaming GUID folders to GPO names..." -ForegroundColor Cyan
-    
-    # Rename GUID folders to GPO names
-    Get-ChildItem $BackupPath -Directory | ForEach-Object {
-        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
-        $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
-        $SafeName = $GPOName -replace '[\\/:*?"<>|]', '-'
-        
-        Rename-Item -Path $_.FullName -NewName $SafeName
-        Write-Host "  Renamed: $SafeName" -ForegroundColor Green
-    }
     
     # Set location to backup path and list contents
     Set-Location $BackupPath
@@ -168,8 +154,8 @@ function Import-MDE-GPOs {
     # Import GPOs
     Get-ChildItem $BackupPath -Directory | ForEach-Object {
         [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
-        $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
-        $BackupId = $_.Name  # Use folder name (GUID or renamed)
+        $GPOName  = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        $BackupId = $BkupInfo.BackupInst.ID.'#cdata-section'
         
         Write-Host "`nProcessing: $GPOName" -ForegroundColor Yellow
         
@@ -196,5 +182,4 @@ function Import-MDE-GPOs {
 
 # Usage Examples:
 # Backup-MDE-GPOs
-
-Import-MDE-GPOs
+Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
