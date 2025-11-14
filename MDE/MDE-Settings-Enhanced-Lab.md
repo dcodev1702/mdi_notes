@@ -387,13 +387,18 @@ Navigate to the scripts directory and run the import function at the bottom of t
 
 ```powershell
 # Navigate to scripts directory
-cd ..\scripts
 
-# Import the script
+Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/blob/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "Export-Import-MDE-GPOs.ps1"
+
+# Remove Mark-Of-The-Web from downloaded zip.
+Unblock-File -Path ".\Export-Import-MDE-GPOs.ps1"
+```
+
+```powershell
+# Ensure the Import function and Backup path is uncommented and then run the script!
+# --> Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
+
 .\Export-Import-MDE-GPOs.ps1
-
-# Import all MDE GPOs
-Import-MDE-GPOs -BackupPath "$PWD\GPOs\MDE-GPO-Backup"
 ```
 
 The script will automatically:
