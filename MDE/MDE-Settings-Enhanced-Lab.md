@@ -108,7 +108,16 @@ Get-MpComputerStatus | Select-Object AMProductVersion
 Update-MpSignature
 ```
 
-🔗 **Windows 11 - Manual Platform Update:** https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623
+**Manual Platform Update (if needed):**
+
+If `Update-MpSignature` doesn't update the platform to the target version, use the automated update script:
+
+```powershell
+# Download and execute the MDAV Platform update script
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Update-MDAV-Platform.ps1" -OutFile "$env:TEMP\Update-MDAV-Platform.ps1"; & "$env:TEMP\Update-MDAV-Platform.ps1"
+```
+
+> **💡 Alternative:** Manually download from [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623)
 
 **Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
 <img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/dbf5f299-18be-4125-a6e7-4a8b65f58651" />
@@ -155,8 +164,11 @@ This guide covers the comprehensive enhancements made to the Microsoft Defender 
 - ✅ Configured ASR rules in Audit Mode
 - ✅ Configured Exploit Guard in Audit Mode
 - ✅ Configured Network Protection in Audit Mode
-- ✅ Enhanced audit logging with comprehensive policies
-- ✅ Increased Security Event Log size to 1GB
+- ✅ Enhanced audit logging with comprehensive policies (40+ audit subcategories)
+- ✅ Increased Security Event Log size from 20MB to 1GB (1,048,576 KB)
+- ✅ Restricted Security Event Log access to System and Administrator accounts only
+- ✅ Enabled PowerShell Script Block Logging and Module Logging
+- ✅ Enabled Process Creation command line logging (Event ID 4688)
 - ✅ Enabled advanced protection features (BAF, Cloud Protection, etc.)
 
 ---
@@ -448,6 +460,86 @@ Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
 # Check Exploit Protection
 Get-ProcessMitigation -RegistryConfigFilePath
 ```
+
+---
+
+## 🔧 MDE Audit Policy Configuration
+
+### Security Event Log Enhancements
+
+The **MDE Audit Policy GPO** (`MDE-Audit-Policy-Workstations` and `MDE-Audit-Policy-Domain-Controllers`) implements critical Security Event Log optimizations for comprehensive EDR visibility:
+
+**Security Event Log Size:**
+- **Default Windows Configuration:** 20 MB (inadequate for security monitoring)
+- **MDE Configuration:** 1,048,576 KB (1 GB)
+- **Benefit:** Provides extended log retention for forensic analysis and threat hunting
+- **Recommendation:** With comprehensive audit policies enabled, 1GB allows approximately 7-14 days of retention depending on activity levels
+
+**Security Event Log Access Control:**
+- **ChannelAccess:** Disabled (restricts log access to System and Administrator accounts only)
+- **ChannelAccessLegacy:** Disabled (restricts legacy log access to System and Administrator accounts only)
+- **Security Boundary:** Prevents unauthorized users and applications from reading sensitive security events
+- **Compliance:** Aligns with CIS benchmarks and NIST guidelines for security log protection
+
+### Why These Settings Matter
+
+**Increased Log Size (1GB):**
+- Default 20MB logs fill rapidly with comprehensive audit policies
+- Inadequate retention leads to critical security events being overwritten
+- 1GB provides sufficient buffer for incident response and forensic investigations
+- Supports Microsoft Defender for Endpoint's Advanced Hunting queries with historical data
+
+**Restricted Log Access:**
+- Security Event Log contains sensitive information (authentication events, privilege use, process creation with command lines)
+- Limiting access to System and Administrators prevents information disclosure
+- Reduces attack surface by preventing malware from reading security events
+- Ensures only privileged accounts can access security telemetry
+
+### Verify Security Event Log Configuration
+
+After GPO application, verify the Security Event Log settings:
+
+```powershell
+# Check Security Event Log maximum size (should be 1048576 KB = 1 GB)
+$LogConfig = Get-WinEvent -ListLog Security
+Write-Host "Security Log Maximum Size: $($LogConfig.MaximumSizeInBytes / 1MB) MB" -ForegroundColor Cyan
+
+# Expected output: 1024 MB (1 GB)
+
+# Verify current log size and available space
+Get-WinEvent -LogName Security -MaxEvents 1 | Select-Object @{
+    Name='LogName';Expression={'Security'}
+}, @{
+    Name='MaxSizeGB';Expression={1}
+}, @{
+    Name='CurrentSizeMB';Expression={(Get-Item "C:\Windows\System32\winevt\Logs\Security.evtx").Length / 1MB}
+}, @{
+    Name='RecordCount';Expression={(Get-WinEvent -LogName Security -Oldest -MaxEvents 1).RecordId}
+}
+```
+
+**Expected Configuration:**
+- ✅ Maximum Size: 1024 MB (1 GB)
+- ✅ Log Access: System and Administrator only
+- ✅ Retention: Overwrite as needed (circular logging)
+
+### Important Notes
+
+> **⚠️ Monitor Log Growth**  
+> With comprehensive audit policies enabled, Security Event Logs will grow significantly faster than default configurations. The 1GB size provides adequate retention, but high-activity environments may require monitoring.
+
+> **💡 Log Collection Recommendation**  
+> For long-term retention and centralized analysis, configure log forwarding to:
+> - Microsoft Sentinel (recommended for MDE integration)
+> - Windows Event Forwarding (WEF) to a log collector
+> - Third-party SIEM solutions
+
+> **🔐 Access Control Impact**  
+> After ChannelAccess restrictions are applied:
+> - Standard users cannot read Security Event Log
+> - Non-administrative applications cannot access security events
+> - Only System and Administrator accounts can query the Security log
+> - This is **expected behavior** and enhances security posture
 
 ---
 
