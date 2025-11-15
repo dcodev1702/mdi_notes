@@ -110,6 +110,8 @@ function Backup-MDE-GPOs {
         # Delete the backup directory after successful compression
         Remove-Item -Path "MDE-GPO-Backup" -Recurse -Force
         Write-Host "Backup directory removed." -ForegroundColor Gray
+    } else {
+        Write-Host "GPO Backup directory not found. Backup may have failed or was not performed." -ForegroundColor Yellow
     }
 }
 
