@@ -99,10 +99,8 @@ function Backup-MDE-GPOs {
         }
     } | Format-Table -AutoSize
     
-    # Set location to backup path and list contents
-    Set-Location $BackupPath
-    Write-Host "`nCurrent location set to: $BackupPath" -ForegroundColor Yellow
-    Get-ChildItem | Format-Table Name, LastWriteTime -AutoSize
+    # List backed up GPO contents
+    Get-ChildItem -Path "$BackupPath" | Format-Table Name, LastWriteTime -AutoSize
 }
 
 function Import-MDE-GPOs {
@@ -205,4 +203,17 @@ function Import-MDE-GPOs {
 
 # Usage Examples:
 # Backup-MDE-GPOs
+
+if (Test-Path "MDE-GPO-Backup") {
+    Compress-Archive -Path "MDE-GPO-Backup" -DestinationPath "MDE-GPO-Backup.zip" -Force
+    Write-Host "MDE GPO's backed up & compressed successfully!" -ForegroundColor Green
+    Get-ChildItem -Path "$PWD\MDE-GPO-Backup.zip" | Format-Table Name, LastWriteTime -AutoSize
+    
+    # Delete the backup directory after successful compression
+    Remove-Item -Path "MDE-GPO-Backup" -Recurse -Force
+    Write-Host "Backup directory removed." -ForegroundColor Gray
+} else {
+    Write-Host "GPO Backup directory not found. Backup may have failed or was not performed." -ForegroundColor Yellow
+}
+
 Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
