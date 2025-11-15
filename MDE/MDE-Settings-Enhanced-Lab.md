@@ -108,7 +108,7 @@ Get-MpComputerStatus | Select-Object AMProductVersion
 Update-MpSignature
 ```
 
-**Manual Platform Update (if needed):**
+**Manual MDAV Platform Update (if needed - Fetch from MSFT Catalog):**
 
 ```powershell
 # Download and execute the MDAV Platform update script
