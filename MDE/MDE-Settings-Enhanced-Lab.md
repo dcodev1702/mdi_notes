@@ -414,6 +414,7 @@ Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
 **Step 6:** Remove downloaded archive, GPO's, and scripts
 
 ```powershell
+cd $env:USERPROFILE
 Remove-Item -Path "$TempPath" -Recurse -Force
 ```
 
