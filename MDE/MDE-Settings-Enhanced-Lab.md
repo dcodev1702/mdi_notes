@@ -353,8 +353,7 @@ if (Test-Path $LocalPath) {
     Write-Host "Local Path: $LocalPath" -ForegroundColor Cyan
     
     # Display the UNC path for GPO configuration
-    $DCHostname = $env:COMPUTERNAME
-    $UNCPath = "\\$DCHostname\GPO-Configs\ExploitProtectionLite.xml"
+    $UNCPath = "$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml"
     Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
     Write-Host $UNCPath -ForegroundColor Green
     Write-Host "`nNote: Domain-joined computers will be able to access this path." -ForegroundColor Yellow
@@ -585,7 +584,7 @@ Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Explo
 **Issue:** XML file not found by GPO
 - **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
 - **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
-- **Verify UNC syntax:** Ensure GPO uses `\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml`
+- **Verify UNC syntax:** Ensure GPO uses `$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml`
 
 **Issue:** Exploit Protection not applying
 - **Solution:** Check Windows Defender service status
