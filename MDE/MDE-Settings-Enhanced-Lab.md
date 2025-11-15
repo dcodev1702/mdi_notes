@@ -373,9 +373,9 @@ Ensure you have:
 - ✅ RSAT tools installed (from step 1 above)
 - ✅ Domain Administrator privileges
 
-### Automated GPO Import
+### Automated MDE GPO (4) Import
 
-Follow these steps to automatically download, extract, and import all MDE GPOs:
+Follow these steps to automatically download, extract, and import all four MDE GPOs:
 
 **Step 1:** Create a temporary working directory
 
