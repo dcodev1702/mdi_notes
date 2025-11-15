@@ -163,44 +163,8 @@ This guide covers the comprehensive enhancements made to the Microsoft Defender 
 
 ## 🔧 Initial Setup (Windows 11 - Client VM)
 
-### 1. Increase Security Event Log Size
 
-Before installing RSAT tools and importing GPOs, increase the Security Event Log size to accommodate enhanced audit logging.
-
-**Increase Security Event Log from 20 MB to 1 GB:**
-
-```powershell
-# Open PowerShell as Administrator
-# Increase Security Event Log to 1 GB (1073741824 bytes)
-wevtutil sl Security /ms:1073741824
-```
-
-**Verify the change:**
-
-```powershell
-# Check current Security log size
-wevtutil gl Security | Select-String -Pattern "maxSize"
-```
-
-**Expected Output:**
-```
-maxSize: 1073741824
-```
-
-**Alternative method using GUI:**
-
-1. Open **Event Viewer** (`eventvwr.msc`)
-2. Navigate to **Windows Logs → Security**
-3. Right-click **Security** → **Properties**
-4. Change **Maximum log size (KB)** to `1048576` (1 GB)
-5. Click **OK**
-
-> **💡 Why increase the log size?**  
-> Enhanced audit policies generate significantly more events. A larger log size ensures you don't lose critical security events due to log rotation.
-
----
-
-### 2. Install RSAT Tools for Windows 11
+### 1. Install RSAT Tools for Windows 11
 
 Install all Remote Server Administration Tools:
 
