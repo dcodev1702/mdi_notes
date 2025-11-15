@@ -418,6 +418,12 @@ cd $env:USERPROFILE
 Remove-Item -Path "$TempPath" -Recurse -Force
 ```
 
+**Step 7:** Force GPO Update on Domain Assets
+
+```powershell
+gpupdate /force
+```
+
 ### What This Does:
 
 1. **Creates temp directory** - `$env:TEMP\MDE-GPO-Import`
@@ -425,6 +431,8 @@ Remove-Item -Path "$TempPath" -Recurse -Force
 3. **Extracts the archive** to the temp directory
 4. **Downloads Export-Import-MDE-GPOs.ps1** script and removes Mark-of-the-Web
 5. **Executes the script** with the correct `-BackupPath` parameter pointing to the extracted GPOs
+6. **Removes Temp Directory** containing GPO & PS script artifacts 
+7. **Performs Group Policy Update on Domain** [contoso.local]
 
 The PowerShell script will automatically perform the following tasks:
 - ✅ Create the Workstations OU (if needed)
@@ -453,11 +461,6 @@ Get-GPInheritance -Target "OU=Workstations,DC=contoso,DC=local"
 Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
 ```
 
-**Force GPO update on client computers:**
-
-```powershell
-gpupdate /force
-```
 
 **Verify imported settings:**
 <img width="1147" height="803" alt="image" src="https://github.com/user-attachments/assets/cacfc95f-3e92-416f-a33e-a26520164d6f" />
