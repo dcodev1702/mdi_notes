@@ -411,7 +411,7 @@ Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
 & "$TempPath\Export-Import-MDE-GPOs.ps1" -BackupPath "$TempPath\MDE-GPO-Backup"
 ```
 
-**Step 6:** Remove download archive, directories, gpo's, and scripts
+**Step 6:** Remove downloaded archive, GPO's, and scripts
 
 ```powershell
 Remove-Item -Path "$TempPath" -Recurse -Force
