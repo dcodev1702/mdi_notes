@@ -104,11 +104,13 @@ Ensure your MDAV platform is up to date before starting:
 # Check current platform version
 Get-MpComputerStatus | Select-Object AMProductVersion
 
-# Update MDAV Signatures via Windows Update
+# Update MDAV platform via Windows Update
 Update-MpSignature
 ```
 
-**Manual MDAV Platform Update (if needed - Fetch from MSFT Catalog):**
+**Manual Platform Update (if needed):**
+
+If `Update-MpSignature` doesn't update the platform to the target version, use the automated update script:
 
 ```powershell
 # Download and execute the MDAV Platform update script
@@ -467,11 +469,57 @@ Get-ProcessMitigation -RegistryConfigFilePath
 
 ---
 
-## 🔧 MDE Audit Policy Configuration
+<details>
+<summary><b>🔧 MDE Audit Policy Configuration</b></summary>
 
-### Security Event Log Enhancements
+<br>
 
-The **MDE Audit Policy GPO** (`MDE-Audit-Policy-Workstations` and `MDE-Audit-Policy-Domain-Controllers`) implements critical Security Event Log optimizations for comprehensive EDR visibility:
+The **MDE Audit Policy GPO** (`MDE-Audit-Policy-Workstations` and `MDE-Audit-Policy-Domain-Controllers`) enforces security logging best practices aligned with MDE requirements, NIST guidelines, and CIS benchmarks to maximize endpoint detection and response capabilities.
+
+---
+
+### 📊 Audit Policy Configuration
+
+**Comprehensive Event Coverage:**
+- Configures **40+ audit subcategories** across **7 major categories**:
+  - **Account Logon** - Credential validation, Kerberos authentication
+  - **Account Management** - User, computer, and group management
+  - **Detailed Tracking** - Process creation, termination, DPAPI activity, PnP events
+  - **Logon/Logoff** - Interactive logons, network logons, special logons
+  - **Object Access** - File system, registry, SAM, network shares
+  - **Policy Change** - Audit policy, authentication policy, firewall policy
+  - **Privilege Use** - Sensitive privilege usage
+  - **System** - Security state changes, system integrity events
+
+**Technical Implementation:**
+- Generates audit policy CSV and deploys it to SYSVOL for GPO enforcement
+- Automatically increments GPO version to trigger policy refresh
+- Ensures consistent audit configuration across all domain-joined systems
+
+---
+
+### 📝 PowerShell Logging
+
+**Script Execution Visibility:**
+- **PowerShell Script Block Logging** - Captures detailed script execution for malicious script detection
+- **PowerShell Module Logging** - Tracks PowerShell module usage across the environment
+- **Detection Capability** - Enables identification of obfuscated commands, fileless malware, and living-off-the-land attacks
+
+---
+
+### 🔍 Process Monitoring
+
+**Command Line Auditing:**
+- **Enables Event ID 4688** - Process creation events with full command line arguments
+- **Parent-Child Relationships** - Tracks process trees for attack chain analysis
+- **Critical for EDR** - Provides visibility into process execution patterns and lateral movement
+- **Advanced Hunting** - Supports Microsoft Defender XDR queries for threat hunting
+
+---
+
+### 📋 Security Event Log Optimization
+
+The **MDE Audit Policy GPO** implements critical Security Event Log optimizations for comprehensive EDR visibility:
 
 **Security Event Log Size:**
 - **Default Windows Configuration:** 20 MB (inadequate for security monitoring)
@@ -485,21 +533,38 @@ The **MDE Audit Policy GPO** (`MDE-Audit-Policy-Workstations` and `MDE-Audit-Pol
 - **Security Boundary:** Prevents unauthorized users and applications from reading sensitive security events
 - **Compliance:** Aligns with CIS benchmarks and NIST guidelines for security log protection
 
-### Why These Settings Matter
+**Why These Settings Matter:**
 
-**Increased Log Size (1GB):**
+*Increased Log Size (1GB):*
 - Default 20MB logs fill rapidly with comprehensive audit policies
 - Inadequate retention leads to critical security events being overwritten
 - 1GB provides sufficient buffer for incident response and forensic investigations
 - Supports Microsoft Defender for Endpoint's Advanced Hunting queries with historical data
 
-**Restricted Log Access:**
+*Restricted Log Access:*
 - Security Event Log contains sensitive information (authentication events, privilege use, process creation with command lines)
 - Limiting access to System and Administrators prevents information disclosure
 - Reduces attack surface by preventing malware from reading security events
 - Ensures only privileged accounts can access security telemetry
 
-### Verify Security Event Log Configuration
+---
+
+### 🚀 GPO Deployment
+
+**Automated Configuration:**
+- Creates new GPO or updates existing GPO with specified name
+- Links GPO to specified Organizational Unit (Domain Controllers or Workstations)
+- Configurable enabled/disabled state for controlled rollout
+- Generates HTML report of complete GPO configuration for documentation
+
+**Deployment Flexibility:**
+- Supports both Domain Controllers and Workstations with separate GPOs
+- Enforced GPO links ensure policy cannot be overridden
+- Automatic GPO refresh triggers immediate application
+
+---
+
+### ✅ Verify Security Event Log Configuration
 
 After GPO application, verify the Security Event Log settings:
 
@@ -507,8 +572,6 @@ After GPO application, verify the Security Event Log settings:
 # Check Security Event Log maximum size (should be 1048576 KB = 1 GB)
 $LogConfig = Get-WinEvent -ListLog Security
 Write-Host "Security Log Maximum Size: $($LogConfig.MaximumSizeInBytes / 1MB) MB" -ForegroundColor Cyan
-
-# Expected output: 1024 MB (1 GB)
 ```
 
 **Expected Configuration:**
@@ -516,7 +579,9 @@ Write-Host "Security Log Maximum Size: $($LogConfig.MaximumSizeInBytes / 1MB) MB
 - ✅ Log Access: System and Administrator only
 - ✅ Retention: Overwrite as needed (circular logging)
 
-### Important Notes
+---
+
+### ⚠️ Important Notes
 
 > **⚠️ Monitor Log Growth**  
 > With comprehensive audit policies enabled, Security Event Logs will grow significantly faster than default configurations. The 1GB size provides adequate retention, but high-activity environments may require monitoring.
@@ -533,6 +598,8 @@ Write-Host "Security Log Maximum Size: $($LogConfig.MaximumSizeInBytes / 1MB) MB
 > - Non-administrative applications cannot access security events
 > - Only System and Administrator accounts can query the Security log
 > - This is **expected behavior** and enhances security posture
+
+</details>
 
 ---
 
