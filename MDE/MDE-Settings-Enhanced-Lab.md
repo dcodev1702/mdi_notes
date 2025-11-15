@@ -372,62 +372,66 @@ Ensure you have:
 - ✅ **Completed Domain Controller preparation** (see collapsible section above)
 - ✅ RSAT tools installed (from step 1 above)
 - ✅ Domain Administrator privileges
-- ✅ The MDE GPO backup files ready for import
 
-### Extract GPO Backup
+### Automated GPO Import
 
-Extract the GPO backup archive:
+Follow these steps to automatically download, extract, and import all MDE GPOs:
 
-```powershell
-# Navigate to the GPOs directory
-cd 'C:\Users\administrator.CONTOSO\Downloads'
-
-# Download MDE GPOs from GitHub Repo
-Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/raw/main/MDE/GPOs/MDE-GPO-Backup.zip" -OutFile "MDE-GPO-Backup.zip"
-
-# Remove Mark-Of-The-Web from downloaded zip.
-Unblock-File -Path ".\MDE-GPO-Backup.zip"
-
-# Extract the backup archive
-Expand-Archive -Path "MDE-GPO-Backup.zip" -DestinationPath $PWD -Force
-```
-
-Verify extraction:
+**Step 1:** Create a temporary working directory
 
 ```powershell
-# List extracted GPOs
-Get-ChildItem .\MDE-GPO-Backup
+$TempPath = "$env:TEMP\MDE-GPO-Import"
+New-Item -Path $TempPath -ItemType Directory -Force | Out-Null
 ```
 
-You should see the following GPO folders:
-<img width="807" height="248" alt="image" src="https://github.com/user-attachments/assets/9e4e5512-97f7-4b24-ac6d-e7e81e2e706d" />
-
-### Import GPOs Using PowerShell
-
-Navigate to the Download directory and perform the following:
+**Step 2:** Download the MDE GPO backup archive from GitHub
 
 ```powershell
-# Downloading PowerShell script from dcodev1702 repo
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "Export-Import-MDE-GPOs.ps1"
-
-# Remove Mark-Of-The-Web from downloaded zip.
-Unblock-File -Path ".\Export-Import-MDE-GPOs.ps1"
+Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/raw/main/MDE/GPOs/MDE-GPO-Backup.zip" -OutFile "$TempPath\MDE-GPO-Backup.zip"
+Unblock-File -Path "$TempPath\MDE-GPO-Backup.zip"
 ```
+
+**Step 3:** Extract the GPO backup archive
 
 ```powershell
-# Inside the script, ensure the Import function and Backup path is uncommented and then run the script!
-# --> Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
-
-# IMPORT MDE GPO's TO THE DC!
-.\Export-Import-MDE-GPOs.ps1
+Expand-Archive -Path "$TempPath\MDE-GPO-Backup.zip" -DestinationPath $TempPath -Force
 ```
 
-The PowerShell script [Export-Import-MDE-GPOs.ps1] will automatically perform the following tasks:
-1. ✅ Create the Workstations OU (if needed)
-2. ✅ Move computers from Computers container to Workstations OU
-3. ✅ Import all four MDE GPOs
-4. ✅ Link GPOs to appropriate OUs
-5. ✅ Enforce all GPO links
+**Step 4:** Download the GPO import script
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "$TempPath\Export-Import-MDE-GPOs.ps1"
+Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
+```
+
+**Step 5:** Execute the import script with the backup path
+
+```powershell
+& "$TempPath\Export-Import-MDE-GPOs.ps1" -BackupPath "$TempPath\MDE-GPO-Backup"
+```
+
+### What This Does:
+
+1. **Creates temp directory** - `$env:TEMP\MDE-GPO-Import`
+2. **Downloads MDE-GPO-Backup.zip** from GitHub and removes Mark-of-the-Web
+3. **Extracts the archive** to the temp directory
+4. **Downloads Export-Import-MDE-GPOs.ps1** script and removes Mark-of-the-Web
+5. **Executes the script** with the correct `-BackupPath` parameter pointing to the extracted GPOs
+
+The PowerShell script will automatically perform the following tasks:
+- ✅ Create the Workstations OU (if needed)
+- ✅ Move computers from Computers container to Workstations OU
+- ✅ Import all four MDE GPOs
+- ✅ Link GPOs to appropriate OUs
+- ✅ Enforce all GPO links
+
+### Benefits:
+
+✅ **Step-by-step execution** - Clear progress through each stage  
+✅ **Individual copy buttons** - Easy to copy and paste each command  
+✅ **No file management** - Everything handled automatically  
+✅ **Clean workspace** - Uses temp directory (can be deleted after import)  
+✅ **Consistent workflow** - Same pattern as MDAV Platform update
 
 ### Verify GPO Import
 
