@@ -104,17 +104,17 @@ Ensure your MDAV platform is up to date before starting:
 # Check current platform version
 Get-MpComputerStatus | Select-Object AMProductVersion
 
-# Update MDAV platform via Windows Update
+# Update MDAV Signatures via Windows Update
 Update-MpSignature
 ```
 
 **Manual Platform Update (if needed):**
 
-If `Update-MpSignature` doesn't update the platform to the target version, use the automated update script:
-
 ```powershell
 # Download and execute the MDAV Platform update script
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Update-MDAV-Platform.ps1" -OutFile "$env:TEMP\Update-MDAV-Platform.ps1"; & "$env:TEMP\Update-MDAV-Platform.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Update-MDAV-Platform.ps1" -OutFile "$env:TEMP\Update-MDAV-Platform.ps1"
+Unblock-File -Path "$env:TEMP\Update-MDAV-Platform.ps1"
+& "$env:TEMP\Update-MDAV-Platform.ps1"
 ```
 
 > **💡 Alternative:** Manually download from [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623)
