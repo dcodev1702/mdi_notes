@@ -5,9 +5,36 @@
     Creates a GPO with comprehensive audit policy settings optimized for Microsoft Defender for Endpoint (MDE).
 
 .DESCRIPTION
-    This script creates a new Group Policy Object with audit policy settings that enable
-    comprehensive logging for MDE to maximize EDR visibility and detection capabilities.
-    The settings are based on MDE requirements and security best practices.
+    This script creates and configures a comprehensive Group Policy Object optimized for Microsoft 
+    Defender for Endpoint (MDE) with the following components:
+    
+    AUDIT POLICY CONFIGURATION:
+    - Configures 40+ audit subcategories across 7 major categories (Account Logon, Account Management,
+      Detailed Tracking, Logon/Logoff, Object Access, Policy Change, Privilege Use, and System)
+    - Generates audit policy CSV and deploys it to SYSVOL for GPO enforcement
+    - Automatically increments GPO version to trigger policy refresh
+    
+    POWERSHELL LOGGING:
+    - Enables PowerShell Script Block Logging for detailed script execution visibility
+    - Enables PowerShell Module Logging to track module usage
+    
+    PROCESS MONITORING:
+    - Enables command line logging for process creation events (Event ID 4688)
+    - Critical for EDR visibility into process execution and parent-child relationships
+    
+    SECURITY EVENT LOG OPTIMIZATION:
+    - Sets Security Event Log maximum size to 1GB (1,048,576 KB)
+    - Disables "Configure log access" policy
+    - Disables "Configure log access (legacy)" policy
+    - Ensures adequate log retention for security monitoring and forensic analysis
+    
+    GPO DEPLOYMENT:
+    - Creates new GPO or updates existing GPO with specified name
+    - Links GPO to specified Organizational Unit with configurable enabled/disabled state
+    - Generates HTML report of complete GPO configuration
+    
+    The script enforces security logging best practices aligned with MDE requirements, NIST guidelines,
+    and CIS benchmarks to maximize endpoint detection and response capabilities.
 
 .PARAMETER GPOName [required]
     Name of the GPO to create. Default: "MDE Audit Policy - Workstations"
