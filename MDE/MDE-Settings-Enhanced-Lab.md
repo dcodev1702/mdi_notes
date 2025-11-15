@@ -509,17 +509,6 @@ $LogConfig = Get-WinEvent -ListLog Security
 Write-Host "Security Log Maximum Size: $($LogConfig.MaximumSizeInBytes / 1MB) MB" -ForegroundColor Cyan
 
 # Expected output: 1024 MB (1 GB)
-
-# Verify current log size and available space
-Get-WinEvent -LogName Security -MaxEvents 1 | Select-Object @{
-    Name='LogName';Expression={'Security'}
-}, @{
-    Name='MaxSizeGB';Expression={1}
-}, @{
-    Name='CurrentSizeMB';Expression={(Get-Item "C:\Windows\System32\winevt\Logs\Security.evtx").Length / 1MB}
-}, @{
-    Name='RecordCount';Expression={(Get-WinEvent -LogName Security -Oldest -MaxEvents 1).RecordId}
-}
 ```
 
 **Expected Configuration:**
