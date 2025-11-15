@@ -96,7 +96,7 @@ Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimePr
 - ✅ No existing ASR, Exploit Protection, or Network Protection configurations
 - ✅ Cloud-delivered protection enabled
 
-**Update Microsoft Defender Antivirus Platform:**
+**Update Microsoft Defender Antivirus (MDAV) Platform:**
 
 Ensure your MDAV platform is up to date before starting:
 
