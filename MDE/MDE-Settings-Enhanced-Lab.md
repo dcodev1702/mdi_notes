@@ -394,7 +394,7 @@ Unblock-File -Path "$TempPath\MDE-GPO-Backup.zip"
 **Step 3:** Extract the GPO backup archive
 
 ```powershell
-Expand-Archive -Path "$TempPath\MDE-GPO-Backup.zip" -DestinationPath $TempPath -Force
+Expand-Archive -Path "$TempPath\MDE-GPO-Backup.zip" -DestinationPath $PWD -Force
 ```
 
 **Step 4:** Download the GPO import script
