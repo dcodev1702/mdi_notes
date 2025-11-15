@@ -212,8 +212,6 @@ if (Test-Path "MDE-GPO-Backup") {
     # Delete the backup directory after successful compression
     Remove-Item -Path "MDE-GPO-Backup" -Recurse -Force
     Write-Host "Backup directory removed." -ForegroundColor Gray
-} else {
-    Write-Host "GPO Backup directory not found. Backup may have failed or was not performed." -ForegroundColor Yellow
 }
 
 Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
