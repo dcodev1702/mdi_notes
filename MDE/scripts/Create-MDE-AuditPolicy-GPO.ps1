@@ -36,11 +36,10 @@
     The script enforces security logging best practices aligned with MDE requirements, NIST guidelines,
     and CIS benchmarks to maximize endpoint detection and response capabilities.
 
-.PARAMETER GPOName [required]
+.PARAMETER GPOName
     Name of the GPO to create. Default: "MDE Audit Policy - Workstations"
-    Name of the GPO to create. Default: "MDE Audit Policy - Domain Controllers"
 
-.PARAMETER TargetOU [required]
+.PARAMETER TargetOU
     Distinguished Name of the OU to link the GPO to. If not specified, GPO is created but not linked.
 
 .PARAMETER LinkEnabled
@@ -53,9 +52,7 @@
     .\Create-MDE-AuditPolicy-GPO.ps1 -GPOName "MDE Audit Policy - Workstations" -TargetOU "OU=Workstations,DC=contoso,DC=local"
 
 .NOTES
-    Author: DCODEV1702 & Claude Sonnet 4.5
-    Date: 12 NOV 2025
-    Description: Generated for MDE Audit Policy Configuration
+    Author: Generated for MDE Audit Policy Configuration
     Requires: Active Directory PowerShell Module, Group Policy Management
     Run as: Domain Administrator or user with GPO creation rights
 #>
@@ -75,8 +72,6 @@ param(
 # Check for required modules
 if (-not (Get-Module -ListAvailable -Name GroupPolicy)) {
     Write-Error "GroupPolicy module not found. Install RSAT Group Policy Management Tools."
-    Write-Error "Run the following command below to install RSAT on Windows 11"
-    Write-Error "Get-WindowsCapability -Name RSAT* -Online | Add-WindowsCapability -Online"
     exit 1
 }
 
@@ -271,12 +266,12 @@ try {
     Set-GPRegistryValue -Name $GPOName -Key "HKLM\Software\Policies\Microsoft\Windows\EventLog\Security" -ValueName "MaxSize" -Type DWord -Value 1048576 | Out-Null
     Write-Host "    Security Event Log maximum size set to 1GB" -ForegroundColor Green
     
-    # Disable Configure log access
-    Set-GPRegistryValue -Name $GPOName -Key "HKLM\Software\Policies\Microsoft\Windows\EventLog\Security" -ValueName "ChannelAccess" -Type String -Value "" | Out-Null
+    # Disable Configure log access (remove the registry value to disable the policy)
+    Remove-GPRegistryValue -Name $GPOName -Key "HKLM\Software\Policies\Microsoft\Windows\EventLog\Security" -ValueName "ChannelAccess" -ErrorAction SilentlyContinue | Out-Null
     Write-Host "    Configure log access set to Disabled" -ForegroundColor Yellow
     
     # Disable Configure log access (legacy)
-    Set-GPRegistryValue -Name $GPOName -Key "HKLM\Software\Policies\Microsoft\Windows\EventLog\Security" -ValueName "ChannelAccessLegacy" -Type String -Value "" | Out-Null
+    Remove-GPRegistryValue -Name $GPOName -Key "HKLM\Software\Policies\Microsoft\Windows\EventLog\Security" -ValueName "ChannelAccessLegacy" -ErrorAction SilentlyContinue | Out-Null
     Write-Host "    Configure log access (legacy) set to Disabled" -ForegroundColor Yellow
     
 } catch {
@@ -287,8 +282,8 @@ try {
 if ($TargetOU) {
     Write-Host "`n[*] Linking GPO to OU: $TargetOU" -ForegroundColor Yellow
     try {
-        $link = New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled $(if ($LinkEnabled) { "Yes" } else { "No" }) -ErrorAction Stop
-        Write-Host "    GPO linked successfully." -ForegroundColor Green
+        $link = New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled $(if ($LinkEnabled) { "Yes" } else { "No" }) -Enforced "Yes" -ErrorAction Stop
+        Write-Host "    GPO linked successfully (Enforced: Yes)." -ForegroundColor Green
         if (-not $LinkEnabled) {
             Write-Host "    (Link is currently disabled)" -ForegroundColor Yellow
         }
