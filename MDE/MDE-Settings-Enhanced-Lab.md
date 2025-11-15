@@ -104,13 +104,11 @@ Ensure your MDAV platform is up to date before starting:
 # Check current platform version
 Get-MpComputerStatus | Select-Object AMProductVersion
 
-# Update MDAV platform via Windows Update
+# Update MDAV Signature via Windows Update
 Update-MpSignature
 ```
 
-**Manual Platform Update (if needed):**
-
-If `Update-MpSignature` doesn't update the platform to the target version, use the automated update script:
+**Manual MDAV Platform Update (if needed via MSFT Catalog: KB4052623):**
 
 ```powershell
 # Download and execute the MDAV Platform update script
