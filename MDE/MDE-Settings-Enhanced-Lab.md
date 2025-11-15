@@ -382,6 +382,7 @@ Follow these steps to automatically download, extract, and import all four MDE G
 ```powershell
 $TempPath = "$env:TEMP\MDE-GPO-Import"
 New-Item -Path $TempPath -ItemType Directory -Force | Out-Null
+cd $TempPath
 ```
 
 **Step 2:** Download the MDE GPO backup archive from GitHub
