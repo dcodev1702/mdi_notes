@@ -3,7 +3,12 @@
     - Add the Sizing tool and run 2 days before VBD
     - Add Proxy Demo and push MDI install through Squid Proxy w/ authentication
 
+  Defender For Identity PS Module: https://learn.microsoft.com/en-us/powershell/module/defenderforidentity/?view=defenderforidentity-latest
+  
 #>
+
+Import-Module DefenderForIdentity
+
 $Identity = "MDIgMSA"
 
 &"C:\Windows\System32\powercfg.exe"@('/GETACTIVESCHEME')
