@@ -1192,11 +1192,13 @@ Use this checklist to track your progress:
 - [ ] Enabled Cloud Protection (Microsoft Active Protection Service - MAPS: Advanced)
 - [ ] Enabled Behavioral Monitoring
 - [ ] Enabled Process Scanning
-- [ ] Enabled File Hash Computation
+- [ ] Enabled File Hash Computation Feature
 - [ ] Enabled File Download & Attachment Scanning
 - [ ] Enabled Script Scanning
 - [ ] Enabled Archive Scanning
 - [ ] Configured Cloud Block Level
+- [ ] Enabled Monitor file and program activity on your computer
+- [ ] Configure Extended Cloud Check (10 seconds)
 - [ ] Forced GPO update on clients (`gpupdate /force`)
 - [ ] Verified audit policy (`auditpol /get /category:*`)
 - [ ] Checked MDE platform version
