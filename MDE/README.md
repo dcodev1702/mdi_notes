@@ -1285,11 +1285,14 @@ Get-MpComputerStatus | Select-Object `
 ---
 
 <details>
-<summary><b>Enable Behavioral Monitoring and Cloud Protection</b></summary>
+<summary><b>Behavioral Monitoring and Cloud Protections (Manual)</b></summary>
 
 <br>
 
-The following features should be configured via GPO or locally:
+The following features should ALREADY be configured via GPO or locally:
+```powershell
+Get-MpPreference | fl *
+```
 
 ```powershell
 # Enable Cloud Protection (MAPS)
