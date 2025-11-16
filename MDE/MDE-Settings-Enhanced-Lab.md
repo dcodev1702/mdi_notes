@@ -594,7 +594,7 @@ This section details the four Microsoft Defender for Endpoint Group Policy Objec
 ---
 
 <details>
-<summary><b>🔧 MDE Audit Policy Configuration</b></summary>
+<summary><b>🔧 MDE Audit Policy Configuration (Workstations & Domain Controllers)</b></summary>
 
 <br>
 
