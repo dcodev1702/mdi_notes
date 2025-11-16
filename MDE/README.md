@@ -8,7 +8,7 @@
 ---
 
 <details>
-<summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs)</span></b></summary>
+<summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs) - Defined!</span></b></summary>
 
 <br>
 
