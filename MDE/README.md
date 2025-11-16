@@ -1290,9 +1290,6 @@ Get-MpComputerStatus | Select-Object `
 <br>
 
 The following features should ALREADY be configured via GPO or locally:
-```powershell
-Get-MpPreference | fl *
-```
 
 ```powershell
 # Enable Cloud Protection (MAPS)
