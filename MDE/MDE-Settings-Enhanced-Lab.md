@@ -373,7 +373,7 @@ Ensure you have:
 - ✅ RSAT tools installed (from step 1 above)
 - ✅ Domain Administrator privileges
 
-### Automated MDE GPO (4) Import
+### Automated MDE GPO Import
 
 Follow these steps to automatically download, extract, and import all four MDE GPOs:
 
@@ -469,13 +469,6 @@ Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
 Get-ProcessMitigation -RegistryConfigFilePath
 ```
 
----
-
----
-
----
-
----
 
 <details>
 <summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
