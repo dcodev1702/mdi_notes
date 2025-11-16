@@ -667,7 +667,7 @@ This workshop assumes you have the following environment and access already conf
 - Microsoft Entra Admin Center: https://entra.microsoft.com
 - Microsoft Intune Admin Center: https://intune.microsoft.com (optional, for endpoint management)
 
-### Lab Infrastructure
+### 🚀 Lab Infrastructure
 
 **Minimum Requirements:**
 
@@ -739,7 +739,7 @@ Unblock-File -Path "$env:TEMP\Update-MDAV-Platform.ps1"
 
 ---
 
-### What This Workshop Will Configure
+###⚡ What This Workshop Will Configure
 
 This guide will take your vanilla MDE environment and configure:
 - Attack Surface Reduction (ASR) rules in audit mode
@@ -1057,7 +1057,7 @@ The PowerShell script will automatically perform the following tasks:
 - ✅ Enforce all GPO links
 
 
-### Verify GPO Import
+### 📐 Verify GPO Import
 
 **Check GPO links:**
 
@@ -1168,7 +1168,7 @@ Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Explo
 
 ---
 
-### Troubleshooting
+###💡Troubleshooting
 
 **Issue:** GPO not applying to computers
 - **Solution:** Ensure computers are in the Workstations OU
@@ -1512,7 +1512,7 @@ Use this checklist to track your progress:
 
 ---
 
-### Deployment Resources
+### 🖥️ Deployment Resources
 
 **Need to Build a Lab Environment?**
 
@@ -1529,7 +1529,7 @@ Blacksmith provides automated deployment templates for:
 - Pre-configured logging and detection scenarios
 - Integration with cloud security tools
 
-**Alternative Options:**
+**✔️ Alternative Options:**
 - Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
 - Azure Virtual Machines with pre-configured templates
 - KVM/Linux, Hyper-V or VMware local lab deployments
