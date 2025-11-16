@@ -1545,4 +1545,4 @@ Blacksmith provides automated deployment templates for:
 
 If you encounter issues during the workshop, contact your instructor or refer to the Microsoft Learn documentation.
 
-**Happy Hunting! 🎯**
+**Happy Hunting! 🎯🏆**
