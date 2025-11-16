@@ -1533,10 +1533,12 @@ Blacksmith provides automated deployment templates for:
 - Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
 - Azure Virtual Machines with pre-configured templates
 - KVM/Linux, Hyper-V or VMware local lab deployments
+  - [Proxmox Lab Guide](https://www.youtube.com/watch?v=oPnojnjUxQE)
+- Infrastructure as Code (IaC) solutions
+  - [Azure Terraformer](https://www.youtube.com/@azure-terraformer)
   - [MSFT Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/)
   - [Terraform](https://azure.github.io/Azure-Verified-Modules/)
-  - [Proxmox Lab Guide](https://www.youtube.com/watch?v=oPnojnjUxQE)
-
+  
 ---
 
 ## 📞 Support
