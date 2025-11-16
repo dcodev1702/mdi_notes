@@ -8,11 +8,11 @@
 ---
 
 <details>
-<summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs) - Defined!</span></b></summary>
+<summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs)</span></b></summary>
 
 <br>
 
-This section details the three Microsoft Defender for Endpoint Group Policy Objects that provide comprehensive security configurations for your domain environment. Each GPO targets specific security capabilities and is designed to be deployed in audit mode initially, allowing you to establish baselines before enforcement.
+This section details the four Microsoft Defender for Endpoint Group Policy Objects that provide comprehensive security configurations for your domain environment. Each GPO targets specific security capabilities and is designed to be deployed in audit mode initially, allowing you to establish baselines before enforcement.
 
 ---
 
@@ -1284,7 +1284,10 @@ Get-MpComputerStatus | Select-Object `
 
 ---
 
-### Enable Behavioral Monitoring and Cloud Protection
+<details>
+<summary><b>Enable Behavioral Monitoring and Cloud Protection</b></summary>
+
+<br>
 
 The following features should be configured via GPO or locally:
 
@@ -1332,6 +1335,8 @@ Set-MpPreference -DisableProtocolRecognition $false
 | `High` | High blocking level |
 | `HighPlus` | High+ blocking with extended timeout |
 | `ZeroTolerance` | Block all unknown programs |
+
+</details>
 
 ---
 
