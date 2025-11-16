@@ -1342,32 +1342,7 @@ Set-MpPreference -DisableProtocolRecognition $false
 
 ## 🔍 Verification and Monitoring
 
-### Check MDE Platform Version
-
-```powershell
-Get-MpComputerStatus | Select-Object AMProductVersion
-```
-
-**Target Version:** 4.18.25100.9006 or higher
-
-### View All Defender Preferences
-
-```powershell
-Get-MpPreference | Format-List
-```
-
-### Check Real-Time Protection Status
-
-```powershell
-Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IoavProtectionEnabled, BehaviorMonitorEnabled, AntivirusEnabled
-```
-
-### Monitor Security Event Log
-
-```powershell
-# View recent security events
-Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Message -Wrap
-```
+### Validate Observability with MDE & GPO settings
 
 <details>
 <summary><b>🧪 Test ASR Rules (Generate 1122 Events)</b></summary>
