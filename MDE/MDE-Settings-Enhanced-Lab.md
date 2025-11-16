@@ -1222,7 +1222,7 @@ Get-MpPreference | Select-Object EnableNetworkProtection
 
 ---
 
-## 🔬 Advanced Protection Features
+## 🧬 Advanced Protection Features
 
 ### Check Current Protection Settings (Baseline)
 
