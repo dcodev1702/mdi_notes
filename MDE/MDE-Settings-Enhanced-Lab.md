@@ -691,27 +691,6 @@ This workshop assumes you have the following environment and access already conf
    - Microsoft Defender for Endpoint connectivity verified
    - DNS resolution for `contoso.local` and internet domains
 
-### Deployment Resources
-
-**Need to Build a Lab Environment?**
-
-If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
-
-🔗 **MSFT Sentinel-2-Go:** https://github.com/OTRF/Microsoft-Sentinel2Go
-
-🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
-
-Blacksmith provides automated deployment templates for:
-- Windows Server Domain Controllers
-- Windows 11 clients
-- Active Directory environments
-- Pre-configured logging and detection scenarios
-- Integration with cloud security tools
-
-**Alternative Options:**
-- Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
-- Azure Virtual Machines with pre-configured templates
-- Hyper-V or VMware local lab deployments
 
 ### Pre-Workshop Validation
 
@@ -1530,6 +1509,30 @@ Use this checklist to track your progress:
 
 > **💡 Pro Tip:**
 > Use `Get-WinEvent` filters and Microsoft Defender XDR's Advanced Hunting to analyze audit mode data efficiently before enforcement.
+
+---
+
+### Deployment Resources
+
+**Need to Build a Lab Environment?**
+
+If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
+
+🔗 **MSFT Sentinel-2-Go:** https://github.com/OTRF/Microsoft-Sentinel2Go
+
+🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
+
+Blacksmith provides automated deployment templates for:
+- Windows Server Domain Controllers
+- Windows 11 clients
+- Active Directory environments
+- Pre-configured logging and detection scenarios
+- Integration with cloud security tools
+
+**Alternative Options:**
+- Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
+- Azure Virtual Machines with pre-configured templates
+- Hyper-V or VMware local lab deployments
 
 ---
 
