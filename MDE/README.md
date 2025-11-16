@@ -6,6 +6,7 @@
 **Student Key:** `[Your Key Here]`
 
 
+### 🛡️ MDE Group Policy Objects (GPOs) Defined
 
 <details>
 <summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs)</span></b></summary>
