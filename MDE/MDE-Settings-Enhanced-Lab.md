@@ -5,584 +5,15 @@
 **Learning Portal:** https://mslearningcampus.com/User/Login  
 **Student Key:** `[Your Key Here]`
 
----
+
+### 🛡️ MDE Group Policy Objects (GPOs) Defined!
 
 <details>
-<summary><b>📋 Prerequisites and Assumptions</b></summary>
+<summary><b><span style="font-size: 1.2em;">⚙️ MDE Group Policy Objects (GPOs)</span></b></summary>
 
 <br>
 
-This workshop assumes you have the following environment and access already configured:
-
-### Microsoft Cloud Environment
-
-**Required Licenses and Access:**
-- ✅ **Microsoft Entra ID** (formerly Azure AD) tenant with administrative access
-- ✅ **Microsoft Defender XDR** suite with the following workloads enabled:
-  - **Microsoft Defender for Endpoint (MDE)** - P2 License
-  - **Microsoft Defender for Office 365 (MDO)** - P2 License
-  - **Microsoft Defender for Identity (MDI)**
-  - **Microsoft Defender for Cloud Apps (MDCA)**
-  - **Microsoft Entra ID Protection**
-- ✅ **Global Administrator** permissions to the tenant (required for configuration)
-
-**Portal Access:**
-- Microsoft Defender XDR Portal: https://security.microsoft.com
-- Microsoft Entra Admin Center: https://entra.microsoft.com
-- Microsoft Intune Admin Center: https://intune.microsoft.com (optional, for endpoint management)
-
-### Lab Infrastructure
-
-**Minimum Requirements:**
-
-1. **Domain Controller (DC):**
-   - Windows Server 2019 or 2022
-   - Active Directory Domain Services configured
-   - Domain: `contoso.local` (or your preferred domain)
-   - Onboarded to Microsoft Defender for Endpoint
-   - Network connectivity to the internet and client systems
-
-2. **Windows 11 Client (CLIENT01):**
-   - Windows 11 Pro or Enterprise (22H2 or later recommended)
-   - Domain-joined to `contoso.local`
-   - Microsoft Defender Antivirus platform, engine, and signatures **up to date**
-   - Onboarded to Microsoft Defender for Endpoint
-   - **Status:** Vanilla state (no prior MDE configurations applied)
-
-3. **Network Configuration:**
-   - Domain Controller and Client on the same subnet (or routable)
-   - Outbound internet connectivity for cloud services
-   - Microsoft Defender for Endpoint connectivity verified
-   - DNS resolution for `contoso.local` and internet domains
-
-### Deployment Resources
-
-**Need to Build a Lab Environment?**
-
-If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
-
-🔗 **MSFT Sentinel-2-Go:** https://github.com/OTRF/Microsoft-Sentinel2Go
-
-🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
-
-Blacksmith provides automated deployment templates for:
-- Windows Server Domain Controllers
-- Windows 11 clients
-- Active Directory environments
-- Pre-configured logging and detection scenarios
-- Integration with cloud security tools
-
-**Alternative Options:**
-- Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
-- Azure Virtual Machines with pre-configured templates
-- Hyper-V or VMware local lab deployments
-
-### Pre-Workshop Validation
-
-Before starting this workshop, verify the following:
-
-```powershell
-# On CLIENT01 - Verify MDE onboarding status
-Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimeProtectionEnabled
-
-# Check if device appears in Defender XDR portal
-# Navigate to: https://security.microsoft.com → Assets → Devices
-```
-
-**Expected State:**
-- ✅ Devices appear in Microsoft Defender XDR portal
-- ✅ Microsoft Defender Antivirus in **Active Mode** (not Passive or Disabled)
-- ✅ **Real-time Protection** is enabled
-- ✅ No existing ASR, Exploit Protection, or Network Protection configurations
-- ✅ Cloud-delivered protection enabled
-
-**Update Microsoft Defender Antivirus (MDAV) Platform:**
-
-Ensure your MDAV platform is up to date before starting:
-
-```powershell
-# Check current platform version
-Get-MpComputerStatus | Select-Object AMProductVersion
-
-# Update MDAV Signature via Windows Update
-Update-MpSignature
-```
-
-**Manual MDAV Platform Update (if needed via MSFT Catalog: KB4052623):**
-
-```powershell
-# Download and execute the MDAV Platform update script
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Update-MDAV-Platform.ps1" -OutFile "$env:TEMP\Update-MDAV-Platform.ps1"
-Unblock-File -Path "$env:TEMP\Update-MDAV-Platform.ps1"
-& "$env:TEMP\Update-MDAV-Platform.ps1"
-```
-
-> **💡 Alternative:** Manually download from [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623)
-
-**Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
-<img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/dbf5f299-18be-4125-a6e7-4a8b65f58651" />
-
----
-
-### What This Workshop Will Configure
-
-This guide will take your vanilla MDE environment and configure:
-- Attack Surface Reduction (ASR) rules in audit mode
-- Exploit Protection settings across common applications
-- Network Protection in audit mode
-- Enhanced audit logging for security events
-- Advanced threat protection features
-- Group Policy Objects for centralized management
-
-### Important Notes
-
-> **⚠️ Workshop Environment Only**  
-> This workshop is designed for **LAB and TRAINING environments**. Always test configurations in non-production environments before deploying to production systems.
-
-> **💡 Production Deployment Considerations**  
-> When moving to production, follow Microsoft's phased deployment approach:
-> 1. Enable audit mode for 30+ days
-> 2. Analyze telemetry and identify false positives
-> 3. Create necessary exclusions
-> 4. Pilot with a small user group
-> 5. Gradually roll out to production
-
-> **🔐 Administrative Access**  
-> You will need Domain Administrator or equivalent permissions to create and link Group Policy Objects throughout this workshop.
-
-</details>
-
----
-
-## 🎯 Lab Enhancements Overview
-
-This guide covers the comprehensive enhancements made to the Microsoft Defender for Endpoint (MDE) lab environment:
-
-- ✅ Updated MDE Platform on CLIENT01
-- ✅ Updated applications (Firefox, PowerShell, Edge) for Threat & Vulnerability Management
-- ✅ Installed RSAT tools on Windows 11
-- ✅ Configured ASR rules in Audit Mode
-- ✅ Configured Exploit Guard in Audit Mode
-- ✅ Configured Network Protection in Audit Mode
-- ✅ Enhanced audit logging with comprehensive policies (40+ audit subcategories)
-- ✅ Increased Security Event Log size from 20MB to 1GB (1,048,576 KB)
-- ✅ Restricted Security Event Log access to System and Administrator accounts only
-- ✅ Enabled PowerShell Script Block Logging and Module Logging
-- ✅ Enabled Process Creation command line logging (Event ID 4688)
-- ✅ Enabled advanced protection features (BAF, Cloud Protection, etc.)
-
----
-
-## 🔧 Initial Setup (Windows 11 - Client VM)
-
-
-### 1. Install RSAT Tools for Windows 11
-
-Install all Remote Server Administration Tools:
-
-```powershell
-# Open a PS Shell as Administrator
-# Install all RSAT capabilities
-Get-WindowsCapability -Name RSAT* -Online | Add-WindowsCapability -Online
-```
-
-Verify installation:
-
-```powershell
-# Validate RSAT tools are installed
-Get-WindowsCapability -Name RSAT* -Online | Where-Object {$_.State -eq "Installed"}
-```
-
-Import Active Directory module:
-
-```powershell
-# Import required modules
-Import-Module GroupPolicy
-Import-Module ActiveDirectory
-```
-
----
-
-## 📂 Active Directory Structure
-
-The import script will automatically handle the following AD configuration tasks:
-
-- **Creates Workstations OU** if it doesn't already exist at `OU=Workstations,DC=contoso,DC=local`
-- **Moves computers** from the default `CN=Computers` container to the Workstations OU
-- **Imports & Links Four MDE GPOs** to appropriate OUs (Domain Controllers or Workstations)
-- **Enforces GPO links** to ensure policies are applied correctly
-
-This automated approach ensures consistent AD structure across lab environments and simplifies the deployment process.
-
----
-
-<details>
-<summary><b>🖥️ Domain Controller Preparation (Complete BEFORE Importing GPOs)</b></summary>
-
-<br>
-
-> **⚠️ IMPORTANT:** Complete these steps on your **Domain Controller** BEFORE importing GPOs from the Windows 11 client.
-
-The Exploit Protection GPO requires an XML configuration file that must be accessible via a network share. This section prepares your Domain Controller with the necessary files and share configuration.
-
----
-
-### Step 1: Download Exploit Protection Configuration
-
-On your **Domain Controller**, download the ExploitProtectionLite.xml file from GitHub:
-
-```powershell
-# Download ExploitProtectionLite.xml from GitHub
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/main/MDE/GPOs/ExploitProtectionLite.xml" -OutFile "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
-```
-
-**Verify download:**
-
-```powershell
-# Check if file was downloaded
-Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
-```
-
----
-
-### Step 2: Remove Mark-of-the-Web
-
-Remove the security zone identifier to prevent execution warnings:
-
-```powershell
-# Remove mark-of-the-web
-Unblock-File -Path "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
-```
-
-**Verify unblocking:**
-
-```powershell
-# Check if file is unblocked (should show no alternate data streams)
-Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Stream *
-```
-
----
-
-### Step 3: Create SMB Share for GPO Configuration
-
-Create the shared folder that will be used by the Exploit Protection GPO:
-
-```powershell
-# Create GPO-Configs directory
-New-Item -Path "C:\GPO-Configs" -ItemType Directory -Force
-
-# Create SMB share with read access for Domain Computers
-New-SmbShare -Name "GPO-Configs" -Path "C:\GPO-Configs" -ReadAccess "Domain Computers"
-
-# Copy ExploitProtectionLite.xml to share
-Copy-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Destination "C:\GPO-Configs\"
-```
-
----
-
-### Step 4: Verify Share Configuration
-
-```powershell
-# Verify SMB share was created
-Get-SmbShare -Name "GPO-Configs"
-
-# View share permissions
-Get-SmbShareAccess -Name "GPO-Configs"
-
-# Verify file exists in local directory
-Get-ChildItem "C:\GPO-Configs"
-```
-
-**Expected Output:**
-
-```
-Name         ScopeName Path           Description
-----         --------- ----           -----------
-GPO-Configs  *         C:\GPO-Configs
-
-
-Name        ScopeName AccountName          AccessControlType AccessRight
-----        --------- -----------          ----------------- -----------
-GPO-Configs *         CONTOSO\Domain Co... Allow             Read
-
-
-    Directory: C:\GPO-Configs
-
-
-Mode                 LastWriteTime         Length Name
-----                 -------------         ------ ----
--a----        11/14/2025   2:30 PM          12345 ExploitProtectionLite.xml
-```
-
----
-
-### Step 5: Verify Configuration
-
-Verify the file was copied successfully and display the UNC path for GPO configuration:
-
-```powershell
-# Verify file exists locally
-$LocalPath = "C:\GPO-Configs\ExploitProtectionLite.xml"
-
-if (Test-Path $LocalPath) {
-    Write-Host "`nFile successfully copied to share location!" -ForegroundColor Green
-    Write-Host "Local Path: $LocalPath" -ForegroundColor Cyan
-    
-    # Display the UNC path for GPO configuration
-    $UNCPath = "$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml"
-    Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
-    Write-Host $UNCPath -ForegroundColor Green
-    Write-Host "`nNote: Domain-joined computers will be able to access this path." -ForegroundColor Yellow
-    Write-Host "User accounts (including Administrator) cannot access this share - this is expected!" -ForegroundColor Yellow
-} else {
-    Write-Host "`nERROR: File not found at $LocalPath" -ForegroundColor Red
-}
-```
-
-> **📝 Important Notes:**
-> - The share is configured for **Domain Computers only** - user accounts cannot access it
-> - Testing the UNC path as Administrator will fail with "Access Denied" - **this is expected and correct**
-> - Domain-joined computers will be able to access the file when the GPO applies
-> - The actual verification happens when GPO processes and computers retrieve the XML file
-
-**Save this UNC path** - you'll need it when configuring the Exploit Protection GPO settings later.
-
----
-
-### What's Next?
-
-After completing these Domain Controller preparation steps:
-
-1. ✅ **Proceed to the Windows 11 client** to import the MDE GPOs
-2. ✅ **After GPO import**, you'll configure the Exploit Protection GPO to use the UNC path: `\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml`
-
-The GPO configuration will be completed in the **Configure Exploit Protection GPO Settings** section below.
-
----
-
-</details>
-
----
-
-## 📥 Import MDE Group Policy Objects
-
-### Prerequisites
-
-Ensure you have:
-- ✅ **Completed Domain Controller preparation** (see collapsible section above)
-- ✅ RSAT tools installed (from step 1 above)
-- ✅ Domain Administrator privileges
-
-### Automated MDE GPO Import
-
-Follow these steps to automatically download, extract, and import all four MDE GPOs:
-
-**Step 1:** Create a temporary working directory
-
-```powershell
-$TempPath = "$env:TEMP\MDE-GPO-Import"
-New-Item -Path $TempPath -ItemType Directory -Force | Out-Null
-cd $TempPath
-```
-
-**Step 2:** Download the MDE GPO backup archive from GitHub
-
-```powershell
-Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/raw/main/MDE/GPOs/MDE-GPO-Backup.zip" -OutFile "$TempPath\MDE-GPO-Backup.zip"
-Unblock-File -Path "$TempPath\MDE-GPO-Backup.zip"
-```
-
-**Step 3:** Extract the GPO backup archive
-
-```powershell
-Expand-Archive -Path "$TempPath\MDE-GPO-Backup.zip" -DestinationPath $PWD -Force
-```
-
-**Step 4:** Download the GPO import script
-
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "$TempPath\Export-Import-MDE-GPOs.ps1"
-Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
-```
-
-**Step 5:** Execute the import script with the backup path
-
-```powershell
-& "$TempPath\Export-Import-MDE-GPOs.ps1" -BackupPath "$TempPath\MDE-GPO-Backup"
-```
-
-**Step 6:** Remove downloaded archive, GPO's, and scripts
-
-```powershell
-cd $env:USERPROFILE
-Remove-Item -Path "$TempPath" -Recurse -Force
-```
-
-**Step 7:** Force GPO Update on Domain Assets
-
-```powershell
-gpupdate /force
-```
-
-### What This Does:
-
-1. **Creates temp directory** - `$env:TEMP\MDE-GPO-Import`
-2. **Downloads MDE-GPO-Backup.zip** from GitHub and removes Mark-of-the-Web
-3. **Extracts the archive** to the temp directory
-4. **Downloads Export-Import-MDE-GPOs.ps1** script and removes Mark-of-the-Web
-5. **Executes the script** with the correct `-BackupPath` parameter pointing to the extracted GPOs
-6. **Removes Temp Directory** containing GPO & PS script artifacts 
-7. **Performs Group Policy Update on Domain** [contoso.local]
-
-The PowerShell script will automatically perform the following tasks:
-- ✅ Create the Workstations OU (if needed)
-- ✅ Move computers from Computers container to Workstations OU
-- ✅ Import all four MDE GPOs
-- ✅ Link GPOs to appropriate OUs
-- ✅ Enforce all GPO links
-
-
-### Verify GPO Import
-
-**Check GPO links:**
-
-```powershell
-# List GPOs linked to Workstations OU
-Get-GPInheritance -Target "OU=Workstations,DC=contoso,DC=local"
-
-# List GPOs linked to Domain Controllers OU
-Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
-```
-
-
-**Verify imported settings:**
-<img width="1147" height="803" alt="image" src="https://github.com/user-attachments/assets/cacfc95f-3e92-416f-a33e-a26520164d6f" />
-
-```powershell
-# Check audit policy
-auditpol /get /category:*
-
-# Check ASR rules
-Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
-
-# Check Exploit Protection
-Get-ProcessMitigation -RegistryConfigFilePath
-```
-
-
-<details>
-<summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
-
-<br>
-
-After importing the GPOs, you must configure the **Exploit-Protections-Workstations** GPO to point to the XML configuration file on the Domain Controller.
-
----
-
-### Open Group Policy Management
-
-On your **Domain Controller** or **Windows 11 client** with RSAT installed:
-
-```powershell
-# Open Group Policy Management Console
-gpmc.msc
-```
-
----
-
-### Navigate to Exploit Protection Settings
-
-**Path in Group Policy Management Editor:**
-
-```
-Computer Configuration
-  └── Policies
-      └── Administrative Templates
-          └── Windows Components
-              └── Windows Defender Exploit Guard
-                  └── Exploit Protection
-```
-
----
-
-### Configure the Policy Setting
-
-1. **Locate the policy:** `Use a common set of exploit protection settings`
-2. **Double-click** to open the setting
-3. **Select:** `Enabled`
-4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
-
-```
-\\DC\GPO-Configs\ExploitProtectionLite.xml
-```
-
-**Example:**
-```
-\\DC\GPO-Configs\ExploitProtectionLite.xml
-```
-
-5. **Click:** `Apply` → `OK`
-
----
-
-### Verify Configuration
-
-**From Group Policy Editor:**
-
-```powershell
-# View the configured setting
-Get-GPO -Name "Exploit-Protections-Workstations" | Get-GPOReport -ReportType Xml | Select-String -Pattern "ExploitProtectionLite.xml"
-```
-
-**Force GPO update on workstation:**
-
-```powershell
-# Force immediate GPO refresh
-gpupdate /force
-```
-
-**Check if Exploit Protection is applied:**
-
-```powershell
-# View current exploit protection settings
-Get-ProcessMitigation -System
-
-# Check registry for configured file path
-Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exploit Guard\Exploit Protection" -ErrorAction SilentlyContinue
-```
-
----
-
-### Troubleshooting
-
-**Issue:** GPO not applying to computers
-- **Solution:** Ensure computers are in the Workstations OU
-- **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
-
-**Issue:** "Access denied" when testing UNC path as Administrator
-- **Solution:** This is **expected behavior** - the share is restricted to Domain Computers only
-- **Verification:** Confirm `Get-SmbShareAccess -Name "GPO-Configs"` shows only "Domain Computers"
-- **Test:** The actual test happens when GPO applies to domain-joined computers
-
-**Issue:** XML file not found by GPO
-- **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
-- **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
-- **Verify UNC syntax:** Ensure GPO uses `$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml`
-
-**Issue:** Exploit Protection not applying
-- **Solution:** Check Windows Defender service status
-- **Command:** `Get-Service -Name WinDefend`
-
----
-
-</details>
-
-<details>
-<summary><b>📋 MDE Group Policy Objects (GPOs)</b></summary>
-
-<br>
-
-This section details the four Microsoft Defender for Endpoint Group Policy Objects that provide comprehensive security configurations for your domain environment. Each GPO targets specific security capabilities and is designed to be deployed in audit mode initially, allowing you to establish baselines before enforcement.
+This section details the three Microsoft Defender for Endpoint Group Policy Objects that provide comprehensive security configurations for your domain environment. Each GPO targets specific security capabilities and is designed to be deployed in audit mode initially, allowing you to establish baselines before enforcement.
 
 ---
 
@@ -1209,7 +640,578 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" |
 
 </details>
 
+
 ---
+
+<details>
+<summary><b>📋 Prerequisites and Assumptions</b></summary>
+
+<br>
+
+This workshop assumes you have the following environment and access already configured:
+
+### Microsoft Cloud Environment
+
+**Required Licenses and Access:**
+- ✅ **Microsoft Entra ID** (formerly Azure AD) tenant with administrative access
+- ✅ **Microsoft Defender XDR** suite with the following workloads enabled:
+  - **Microsoft Defender for Endpoint (MDE)** - P2 License
+  - **Microsoft Defender for Office 365 (MDO)** - P2 License
+  - **Microsoft Defender for Identity (MDI)**
+  - **Microsoft Defender for Cloud Apps (MDCA)**
+  - **Microsoft Entra ID Protection**
+- ✅ **Global Administrator** permissions to the tenant (required for configuration)
+
+**Portal Access:**
+- Microsoft Defender XDR Portal: https://security.microsoft.com
+- Microsoft Entra Admin Center: https://entra.microsoft.com
+- Microsoft Intune Admin Center: https://intune.microsoft.com (optional, for endpoint management)
+
+### Lab Infrastructure
+
+**Minimum Requirements:**
+
+1. **Domain Controller (DC):**
+   - Windows Server 2019 or 2022
+   - Active Directory Domain Services configured
+   - Domain: `contoso.local` (or your preferred domain)
+   - Onboarded to Microsoft Defender for Endpoint
+   - Network connectivity to the internet and client systems
+
+2. **Windows 11 Client (CLIENT01):**
+   - Windows 11 Pro or Enterprise (22H2 or later recommended)
+   - Domain-joined to `contoso.local`
+   - Microsoft Defender Antivirus platform, engine, and signatures **up to date**
+   - Onboarded to Microsoft Defender for Endpoint
+   - **Status:** Vanilla state (no prior MDE configurations applied)
+
+3. **Network Configuration:**
+   - Domain Controller and Client on the same subnet (or routable)
+   - Outbound internet connectivity for cloud services
+   - Microsoft Defender for Endpoint connectivity verified
+   - DNS resolution for `contoso.local` and internet domains
+
+### Deployment Resources
+
+**Need to Build a Lab Environment?**
+
+If you need to provision your lab infrastructure from scratch, consider using the **Open Threat Research Forge (OTRF) Blacksmith** project:
+
+🔗 **MSFT Sentinel-2-Go:** https://github.com/OTRF/Microsoft-Sentinel2Go
+
+🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
+
+Blacksmith provides automated deployment templates for:
+- Windows Server Domain Controllers
+- Windows 11 clients
+- Active Directory environments
+- Pre-configured logging and detection scenarios
+- Integration with cloud security tools
+
+**Alternative Options:**
+- Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
+- Azure Virtual Machines with pre-configured templates
+- Hyper-V or VMware local lab deployments
+
+### Pre-Workshop Validation
+
+Before starting this workshop, verify the following:
+
+```powershell
+# On CLIENT01 - Verify MDE onboarding status
+Get-MpComputerStatus | Select-Object AMProductVersion, AMRunningMode, RealTimeProtectionEnabled
+
+# Check if device appears in Defender XDR portal
+# Navigate to: https://security.microsoft.com → Assets → Devices
+```
+
+**Expected State:**
+- ✅ Devices appear in Microsoft Defender XDR portal
+- ✅ Microsoft Defender Antivirus in **Active Mode** (not Passive or Disabled)
+- ✅ **Real-time Protection** is enabled
+- ✅ No existing ASR, Exploit Protection, or Network Protection configurations
+- ✅ Cloud-delivered protection enabled
+
+**Update Microsoft Defender Antivirus (MDAV) Platform:**
+
+Ensure your MDAV platform is up to date before starting:
+
+```powershell
+# Check current platform version
+Get-MpComputerStatus | Select-Object AMProductVersion
+
+# Update MDAV Signature via Windows Update
+Update-MpSignature
+```
+
+**Manual MDAV Platform Update (if needed via MSFT Catalog: KB4052623):**
+
+```powershell
+# Download and execute the MDAV Platform update script
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Update-MDAV-Platform.ps1" -OutFile "$env:TEMP\Update-MDAV-Platform.ps1"
+Unblock-File -Path "$env:TEMP\Update-MDAV-Platform.ps1"
+& "$env:TEMP\Update-MDAV-Platform.ps1"
+```
+
+> **💡 Alternative:** Manually download from [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/Search.aspx?q=KB4052623)
+
+**Windows 11 (Client) Target Version:** 4.18.25100.9006 or higher
+<img width="865" height="473" alt="image" src="https://github.com/user-attachments/assets/dbf5f299-18be-4125-a6e7-4a8b65f58651" />
+
+---
+
+### What This Workshop Will Configure
+
+This guide will take your vanilla MDE environment and configure:
+- Attack Surface Reduction (ASR) rules in audit mode
+- Exploit Protection settings across common applications
+- Network Protection in audit mode
+- Enhanced audit logging for security events
+- Advanced threat protection features
+- Group Policy Objects for centralized management
+
+### Important Notes
+
+> **⚠️ Workshop Environment Only**  
+> This workshop is designed for **LAB and TRAINING environments**. Always test configurations in non-production environments before deploying to production systems.
+
+> **💡 Production Deployment Considerations**  
+> When moving to production, follow Microsoft's phased deployment approach:
+> 1. Enable audit mode for 30+ days
+> 2. Analyze telemetry and identify false positives
+> 3. Create necessary exclusions
+> 4. Pilot with a small user group
+> 5. Gradually roll out to production
+
+> **🔐 Administrative Access**  
+> You will need Domain Administrator or equivalent permissions to create and link Group Policy Objects throughout this workshop.
+
+</details>
+
+---
+
+## 🎯 Lab Enhancements Overview
+
+This guide covers the comprehensive enhancements made to the Microsoft Defender for Endpoint (MDE) lab environment:
+
+- ✅ Updated MDE Platform on CLIENT01
+- ✅ Updated applications (Firefox, PowerShell, Edge) for Threat & Vulnerability Management
+- ✅ Installed RSAT tools on Windows 11
+- ✅ Configured ASR rules in Audit Mode
+- ✅ Configured Exploit Guard in Audit Mode
+- ✅ Configured Network Protection in Audit Mode
+- ✅ Enhanced audit logging with comprehensive policies (40+ audit subcategories)
+- ✅ Increased Security Event Log size from 20MB to 1GB (1,048,576 KB)
+- ✅ Restricted Security Event Log access to System and Administrator accounts only
+- ✅ Enabled PowerShell Script Block Logging and Module Logging
+- ✅ Enabled Process Creation command line logging (Event ID 4688)
+- ✅ Enabled advanced protection features (BAF, Cloud Protection, etc.)
+
+---
+
+## 🔧 Initial Setup (Windows 11 - Client VM)
+
+
+### 1. Install RSAT Tools for Windows 11
+
+Install all Remote Server Administration Tools:
+
+```powershell
+# Open a PS Shell as Administrator
+# Install all RSAT capabilities
+Get-WindowsCapability -Name RSAT* -Online | Add-WindowsCapability -Online
+```
+
+Verify installation:
+
+```powershell
+# Validate RSAT tools are installed
+Get-WindowsCapability -Name RSAT* -Online | Where-Object {$_.State -eq "Installed"}
+```
+
+Import Active Directory module:
+
+```powershell
+# Import required modules
+Import-Module GroupPolicy
+Import-Module ActiveDirectory
+```
+
+---
+
+## 📂 Active Directory Structure
+
+The import script will automatically handle the following AD configuration tasks:
+
+- **Creates Workstations OU** if it doesn't already exist at `OU=Workstations,DC=contoso,DC=local`
+- **Moves computers** from the default `CN=Computers` container to the Workstations OU
+- **Imports & Links Four MDE GPOs** to appropriate OUs (Domain Controllers or Workstations)
+- **Enforces GPO links** to ensure policies are applied correctly
+
+This automated approach ensures consistent AD structure across lab environments and simplifies the deployment process.
+
+---
+
+<details>
+<summary><b>🖥️ Domain Controller Preparation (Complete BEFORE Importing GPOs)</b></summary>
+
+<br>
+
+> **⚠️ IMPORTANT:** Complete these steps on your **Domain Controller** BEFORE importing GPOs from the Windows 11 client.
+
+The Exploit Protection GPO requires an XML configuration file that must be accessible via a network share. This section prepares your Domain Controller with the necessary files and share configuration.
+
+---
+
+### Step 1: Download Exploit Protection Configuration
+
+On your **Domain Controller**, download the ExploitProtectionLite.xml file from GitHub:
+
+```powershell
+# Download ExploitProtectionLite.xml from GitHub
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/main/MDE/GPOs/ExploitProtectionLite.xml" -OutFile "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+**Verify download:**
+
+```powershell
+# Check if file was downloaded
+Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+---
+
+### Step 2: Remove Mark-of-the-Web
+
+Remove the security zone identifier to prevent execution warnings:
+
+```powershell
+# Remove mark-of-the-web
+Unblock-File -Path "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml"
+```
+
+**Verify unblocking:**
+
+```powershell
+# Check if file is unblocked (should show no alternate data streams)
+Get-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Stream *
+```
+
+---
+
+### Step 3: Create SMB Share for GPO Configuration
+
+Create the shared folder that will be used by the Exploit Protection GPO:
+
+```powershell
+# Create GPO-Configs directory
+New-Item -Path "C:\GPO-Configs" -ItemType Directory -Force
+
+# Create SMB share with read access for Domain Computers
+New-SmbShare -Name "GPO-Configs" -Path "C:\GPO-Configs" -ReadAccess "Domain Computers"
+
+# Copy ExploitProtectionLite.xml to share
+Copy-Item "$env:USERPROFILE\Downloads\ExploitProtectionLite.xml" -Destination "C:\GPO-Configs\"
+```
+
+---
+
+### Step 4: Verify Share Configuration
+
+```powershell
+# Verify SMB share was created
+Get-SmbShare -Name "GPO-Configs"
+
+# View share permissions
+Get-SmbShareAccess -Name "GPO-Configs"
+
+# Verify file exists in local directory
+Get-ChildItem "C:\GPO-Configs"
+```
+
+**Expected Output:**
+
+```
+Name         ScopeName Path           Description
+----         --------- ----           -----------
+GPO-Configs  *         C:\GPO-Configs
+
+
+Name        ScopeName AccountName          AccessControlType AccessRight
+----        --------- -----------          ----------------- -----------
+GPO-Configs *         CONTOSO\Domain Co... Allow             Read
+
+
+    Directory: C:\GPO-Configs
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        11/14/2025   2:30 PM          12345 ExploitProtectionLite.xml
+```
+
+---
+
+### Step 5: Verify Configuration
+
+Verify the file was copied successfully and display the UNC path for GPO configuration:
+
+```powershell
+# Verify file exists locally
+$LocalPath = "C:\GPO-Configs\ExploitProtectionLite.xml"
+
+if (Test-Path $LocalPath) {
+    Write-Host "`nFile successfully copied to share location!" -ForegroundColor Green
+    Write-Host "Local Path: $LocalPath" -ForegroundColor Cyan
+    
+    # Display the UNC path for GPO configuration
+    $UNCPath = "$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml"
+    Write-Host "`nUNC Path for GPO configuration:" -ForegroundColor Cyan
+    Write-Host $UNCPath -ForegroundColor Green
+    Write-Host "`nNote: Domain-joined computers will be able to access this path." -ForegroundColor Yellow
+    Write-Host "User accounts (including Administrator) cannot access this share - this is expected!" -ForegroundColor Yellow
+} else {
+    Write-Host "`nERROR: File not found at $LocalPath" -ForegroundColor Red
+}
+```
+
+> **📝 Important Notes:**
+> - The share is configured for **Domain Computers only** - user accounts cannot access it
+> - Testing the UNC path as Administrator will fail with "Access Denied" - **this is expected and correct**
+> - Domain-joined computers will be able to access the file when the GPO applies
+> - The actual verification happens when GPO processes and computers retrieve the XML file
+
+**Save this UNC path** - you'll need it when configuring the Exploit Protection GPO settings later.
+
+---
+
+### What's Next?
+
+After completing these Domain Controller preparation steps:
+
+1. ✅ **Proceed to the Windows 11 client** to import the MDE GPOs
+2. ✅ **After GPO import**, you'll configure the Exploit Protection GPO to use the UNC path: `\\<DC-HOSTNAME>\GPO-Configs\ExploitProtectionLite.xml`
+
+The GPO configuration will be completed in the **Configure Exploit Protection GPO Settings** section below.
+
+---
+
+</details>
+
+---
+
+## 📥 Import MDE Group Policy Objects
+
+### Prerequisites
+
+Ensure you have:
+- ✅ **Completed Domain Controller preparation** (see collapsible section above)
+- ✅ RSAT tools installed (from step 1 above)
+- ✅ Domain Administrator privileges
+
+### Automated MDE GPO Import
+
+Follow these steps to automatically download, extract, and import all four MDE GPOs:
+
+**Step 1:** Create a temporary working directory
+
+```powershell
+$TempPath = "$env:TEMP\MDE-GPO-Import"
+New-Item -Path $TempPath -ItemType Directory -Force | Out-Null
+cd $TempPath
+```
+
+**Step 2:** Download the MDE GPO backup archive from GitHub
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/dcodev1702/mdi_notes/raw/main/MDE/GPOs/MDE-GPO-Backup.zip" -OutFile "$TempPath\MDE-GPO-Backup.zip"
+Unblock-File -Path "$TempPath\MDE-GPO-Backup.zip"
+```
+
+**Step 3:** Extract the GPO backup archive
+
+```powershell
+Expand-Archive -Path "$TempPath\MDE-GPO-Backup.zip" -DestinationPath $PWD -Force
+```
+
+**Step 4:** Download the GPO import script
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/MDE/scripts/Export-Import-MDE-GPOs.ps1" -OutFile "$TempPath\Export-Import-MDE-GPOs.ps1"
+Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
+```
+
+**Step 5:** Execute the import script with the backup path
+
+```powershell
+& "$TempPath\Export-Import-MDE-GPOs.ps1" -BackupPath "$TempPath\MDE-GPO-Backup"
+```
+
+**Step 6:** Remove downloaded archive, GPO's, and scripts
+
+```powershell
+cd $env:USERPROFILE
+Remove-Item -Path "$TempPath" -Recurse -Force
+```
+
+**Step 7:** Force GPO Update on Domain Assets
+
+```powershell
+gpupdate /force
+```
+
+### What This Does:
+
+1. **Creates temp directory** - `$env:TEMP\MDE-GPO-Import`
+2. **Downloads MDE-GPO-Backup.zip** from GitHub and removes Mark-of-the-Web
+3. **Extracts the archive** to the temp directory
+4. **Downloads Export-Import-MDE-GPOs.ps1** script and removes Mark-of-the-Web
+5. **Executes the script** with the correct `-BackupPath` parameter pointing to the extracted GPOs
+6. **Removes Temp Directory** containing GPO & PS script artifacts 
+7. **Performs Group Policy Update on Domain** [contoso.local]
+
+The PowerShell script will automatically perform the following tasks:
+- ✅ Create the Workstations OU (if needed)
+- ✅ Move computers from Computers container to Workstations OU
+- ✅ Import all four MDE GPOs
+- ✅ Link GPOs to appropriate OUs
+- ✅ Enforce all GPO links
+
+
+### Verify GPO Import
+
+**Check GPO links:**
+
+```powershell
+# List GPOs linked to Workstations OU
+Get-GPInheritance -Target "OU=Workstations,DC=contoso,DC=local"
+
+# List GPOs linked to Domain Controllers OU
+Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
+```
+
+
+**Verify imported settings:**
+<img width="1147" height="803" alt="image" src="https://github.com/user-attachments/assets/cacfc95f-3e92-416f-a33e-a26520164d6f" />
+
+```powershell
+# Check audit policy
+auditpol /get /category:*
+
+# Check ASR rules
+Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
+
+# Check Exploit Protection
+Get-ProcessMitigation -RegistryConfigFilePath
+```
+
+
+<details>
+<summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
+
+<br>
+
+After importing the GPOs, you must configure the **Exploit-Protections-Workstations** GPO to point to the XML configuration file on the Domain Controller.
+
+---
+
+### Open Group Policy Management
+
+On your **Domain Controller** or **Windows 11 client** with RSAT installed:
+
+```powershell
+# Open Group Policy Management Console
+gpmc.msc
+```
+
+---
+
+### Navigate to Exploit Protection Settings
+
+**Path in Group Policy Management Editor:**
+
+```
+Computer Configuration
+  └── Policies
+      └── Administrative Templates
+          └── Windows Components
+              └── Windows Defender Exploit Guard
+                  └── Exploit Protection
+```
+
+---
+
+### Configure the Policy Setting
+
+1. **Locate the policy:** `Use a common set of exploit protection settings`
+2. **Double-click** to open the setting
+3. **Select:** `Enabled`
+4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
+
+```
+\\DC\GPO-Configs\ExploitProtectionLite.xml
+```
+
+**Example:**
+```
+\\DC\GPO-Configs\ExploitProtectionLite.xml
+```
+
+5. **Click:** `Apply` → `OK`
+
+---
+
+### Verify Configuration
+
+**From Group Policy Editor:**
+
+```powershell
+# View the configured setting
+Get-GPO -Name "Exploit-Protections-Workstations" | Get-GPOReport -ReportType Xml | Select-String -Pattern "ExploitProtectionLite.xml"
+```
+
+**Force GPO update on workstation:**
+
+```powershell
+# Force immediate GPO refresh
+gpupdate /force
+```
+
+**Check if Exploit Protection is applied:**
+
+```powershell
+# View current exploit protection settings
+Get-ProcessMitigation -System
+
+# Check registry for configured file path
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exploit Guard\Exploit Protection" -ErrorAction SilentlyContinue
+```
+
+---
+
+### Troubleshooting
+
+**Issue:** GPO not applying to computers
+- **Solution:** Ensure computers are in the Workstations OU
+- **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
+
+**Issue:** "Access denied" when testing UNC path as Administrator
+- **Solution:** This is **expected behavior** - the share is restricted to Domain Computers only
+- **Verification:** Confirm `Get-SmbShareAccess -Name "GPO-Configs"` shows only "Domain Computers"
+- **Test:** The actual test happens when GPO applies to domain-joined computers
+
+**Issue:** XML file not found by GPO
+- **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
+- **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
+- **Verify UNC syntax:** Ensure GPO uses `$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml`
+
+**Issue:** Exploit Protection not applying
+- **Solution:** Check Windows Defender service status
+- **Command:** `Get-Service -Name WinDefend`
+
+---
+
+</details>
 
 ## 🌐 Configure Network Protection
 
@@ -1283,9 +1285,12 @@ Get-MpComputerStatus | Select-Object `
 
 ---
 
-### Enable Behavioral Monitoring and Cloud Protection
+<details>
+<summary><b>Behavioral Monitoring and Cloud Protections (Manual)</b></summary>
 
-The following features should be configured via GPO or locally:
+<br>
+
+The following features should ALREADY be configured via GPO or locally:
 
 ```powershell
 # Enable Cloud Protection (MAPS)
@@ -1332,36 +1337,13 @@ Set-MpPreference -DisableProtocolRecognition $false
 | `HighPlus` | High+ blocking with extended timeout |
 | `ZeroTolerance` | Block all unknown programs |
 
+</details>
+
 ---
 
 ## 🔍 Verification and Monitoring
 
-### Check MDE Platform Version
-
-```powershell
-Get-MpComputerStatus | Select-Object AMProductVersion
-```
-
-**Target Version:** 4.18.25100.9006 or higher
-
-### View All Defender Preferences
-
-```powershell
-Get-MpPreference | Format-List
-```
-
-### Check Real-Time Protection Status
-
-```powershell
-Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, IoavProtectionEnabled, BehaviorMonitorEnabled, AntivirusEnabled
-```
-
-### Monitor Security Event Log
-
-```powershell
-# View recent security events
-Get-WinEvent -LogName Security -MaxEvents 50 | Format-Table TimeCreated, Id, Message -Wrap
-```
+### Validate Observability with MDE & GPO settings
 
 <details>
 <summary><b>🧪 Test ASR Rules (Generate 1122 Events)</b></summary>
