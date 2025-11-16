@@ -478,6 +478,128 @@ Get-ProcessMitigation -RegistryConfigFilePath
 
 ---
 
+---
+
+---
+
+---
+
+<details>
+<summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
+
+<br>
+
+After importing the GPOs, you must configure the **Exploit-Protections-Workstations** GPO to point to the XML configuration file on the Domain Controller.
+
+---
+
+### Open Group Policy Management
+
+On your **Domain Controller** or **Windows 11 client** with RSAT installed:
+
+```powershell
+# Open Group Policy Management Console
+gpmc.msc
+```
+
+---
+
+### Navigate to Exploit Protection Settings
+
+**Path in Group Policy Management Editor:**
+
+```
+Computer Configuration
+  └── Policies
+      └── Administrative Templates
+          └── Windows Components
+              └── Windows Defender Exploit Guard
+                  └── Exploit Protection
+```
+
+---
+
+### Configure the Policy Setting
+
+1. **Locate the policy:** `Use a common set of exploit protection settings`
+2. **Double-click** to open the setting
+3. **Select:** `Enabled`
+4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
+
+```
+\\DC\GPO-Configs\ExploitProtectionLite.xml
+```
+
+**Example:**
+```
+\\DC\GPO-Configs\ExploitProtectionLite.xml
+```
+
+5. **Click:** `Apply` → `OK`
+
+---
+
+### Verify Configuration
+
+**From Group Policy Editor:**
+
+```powershell
+# View the configured setting
+Get-GPO -Name "Exploit-Protections-Workstations" | Get-GPOReport -ReportType Xml | Select-String -Pattern "ExploitProtectionLite.xml"
+```
+
+**Force GPO update on workstation:**
+
+```powershell
+# Force immediate GPO refresh
+gpupdate /force
+```
+
+**Check if Exploit Protection is applied:**
+
+```powershell
+# View current exploit protection settings
+Get-ProcessMitigation -System
+
+# Check registry for configured file path
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exploit Guard\Exploit Protection" -ErrorAction SilentlyContinue
+```
+
+---
+
+### Troubleshooting
+
+**Issue:** GPO not applying to computers
+- **Solution:** Ensure computers are in the Workstations OU
+- **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
+
+**Issue:** "Access denied" when testing UNC path as Administrator
+- **Solution:** This is **expected behavior** - the share is restricted to Domain Computers only
+- **Verification:** Confirm `Get-SmbShareAccess -Name "GPO-Configs"` shows only "Domain Computers"
+- **Test:** The actual test happens when GPO applies to domain-joined computers
+
+**Issue:** XML file not found by GPO
+- **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
+- **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
+- **Verify UNC syntax:** Ensure GPO uses `$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml`
+
+**Issue:** Exploit Protection not applying
+- **Solution:** Check Windows Defender service status
+- **Command:** `Get-Service -Name WinDefend`
+
+---
+
+</details>
+
+<details>
+<summary><b>📋 MDE Group Policy Objects (GPOs)</b></summary>
+
+<br>
+
+This section details the four Microsoft Defender for Endpoint Group Policy Objects that provide comprehensive security configurations for your domain environment. Each GPO targets specific security capabilities and is designed to be deployed in audit mode initially, allowing you to establish baselines before enforcement.
+
+---
+
 <details>
 <summary><b>🔧 MDE Audit Policy Configuration</b></summary>
 
@@ -1098,113 +1220,6 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" |
 > **Note:** Prefer GPO configuration over local settings for enterprise management
 
 </details>
-
----
-
-<details>
-<summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
-
-<br>
-
-After importing the GPOs, you must configure the **Exploit-Protections-Workstations** GPO to point to the XML configuration file on the Domain Controller.
-
----
-
-### Open Group Policy Management
-
-On your **Domain Controller** or **Windows 11 client** with RSAT installed:
-
-```powershell
-# Open Group Policy Management Console
-gpmc.msc
-```
-
----
-
-### Navigate to Exploit Protection Settings
-
-**Path in Group Policy Management Editor:**
-
-```
-Computer Configuration
-  └── Policies
-      └── Administrative Templates
-          └── Windows Components
-              └── Windows Defender Exploit Guard
-                  └── Exploit Protection
-```
-
----
-
-### Configure the Policy Setting
-
-1. **Locate the policy:** `Use a common set of exploit protection settings`
-2. **Double-click** to open the setting
-3. **Select:** `Enabled`
-4. **Options:** In the **"Options"** section, enter the UNC path to the XML file:
-
-```
-\\DC\GPO-Configs\ExploitProtectionLite.xml
-```
-
-**Example:**
-```
-\\DC\GPO-Configs\ExploitProtectionLite.xml
-```
-
-5. **Click:** `Apply` → `OK`
-
----
-
-### Verify Configuration
-
-**From Group Policy Editor:**
-
-```powershell
-# View the configured setting
-Get-GPO -Name "Exploit-Protections-Workstations" | Get-GPOReport -ReportType Xml | Select-String -Pattern "ExploitProtectionLite.xml"
-```
-
-**Force GPO update on workstation:**
-
-```powershell
-# Force immediate GPO refresh
-gpupdate /force
-```
-
-**Check if Exploit Protection is applied:**
-
-```powershell
-# View current exploit protection settings
-Get-ProcessMitigation -System
-
-# Check registry for configured file path
-Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exploit Guard\Exploit Protection" -ErrorAction SilentlyContinue
-```
-
----
-
-### Troubleshooting
-
-**Issue:** GPO not applying to computers
-- **Solution:** Ensure computers are in the Workstations OU
-- **Command:** `Get-ADComputer -Filter * | Select-Object Name, DistinguishedName`
-
-**Issue:** "Access denied" when testing UNC path as Administrator
-- **Solution:** This is **expected behavior** - the share is restricted to Domain Computers only
-- **Verification:** Confirm `Get-SmbShareAccess -Name "GPO-Configs"` shows only "Domain Computers"
-- **Test:** The actual test happens when GPO applies to domain-joined computers
-
-**Issue:** XML file not found by GPO
-- **Solution:** Verify local file exists at `C:\GPO-Configs\ExploitProtectionLite.xml`
-- **Command:** `Test-Path "C:\GPO-Configs\ExploitProtectionLite.xml"`
-- **Verify UNC syntax:** Ensure GPO uses `$env:LOGONSERVER\GPO-Configs\ExploitProtectionLite.xml`
-
-**Issue:** Exploit Protection not applying
-- **Solution:** Check Windows Defender service status
-- **Command:** `Get-Service -Name WinDefend`
-
----
 
 </details>
 
