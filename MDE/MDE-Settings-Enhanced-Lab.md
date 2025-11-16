@@ -786,6 +786,322 @@ DeviceEvents
 ---
 
 <details>
+<summary><b>🔒 Endpoint Hardening & Exploit Protection</b></summary>
+
+<br>
+
+The **Exploit-Protections-Workstations** GPO (`Exploit-Protections-Workstations`) provides comprehensive endpoint security by configuring Microsoft Defender's advanced protection features, cloud intelligence integration, and exploit mitigation capabilities. This GPO establishes a robust security baseline for workstations while maintaining audit-friendly configurations for controlled rollout.
+
+---
+
+### 🌩️ Microsoft MAPS & Cloud Protection
+
+**Cloud-Connected Threat Intelligence:**
+- **Microsoft MAPS (Advanced):** Maximum telemetry sharing with Microsoft's cloud protection service
+- **Block at First Sight (BAFS):** Instantly blocks suspicious files before signature updates are available
+- **Automatic Sample Submission:** All suspicious samples automatically sent to Microsoft for analysis
+- **Extended Cloud Check:** 10-second timeout allows cloud analysis for unknown files before execution
+- **File Hash Computation:** Enables rapid cloud-based reputation lookups
+- **Real-time Security Intelligence Updates:** Automatic signature updates based on MAPS telemetry
+
+**What This Provides:**
+- Zero-day threat protection through cloud intelligence
+- Immediate response to emerging threats before signature distribution
+- Reduced time-to-protection for new malware variants
+- Enhanced detection through global threat telemetry
+
+---
+
+### 🛡️ Network Protection
+
+**Web Threat Prevention:**
+- **Network Protection:** Enabled in **Audit Mode** (logs dangerous website access attempts)
+- **SmartScreen Integration:** Prevents access to phishing sites and malicious downloads
+- **Protocol Recognition:** Enabled for enhanced network traffic analysis
+- **Datagram Processing:** Enabled for comprehensive network-level threat detection
+- **Windows Server Support:** Network Protection explicitly enabled for server platforms
+
+**Protection Scope:**
+- Malicious websites and domains
+- Phishing attempts
+- Exploit hosting sites
+- Command-and-control (C2) communications
+- Drive-by download attacks
+
+**Audit Mode Benefits:**
+- Generates telemetry without blocking user access
+- Allows identification of false positives before enforcement
+- Provides visibility into web-based threats
+- Enables baseline establishment for network behavior
+
+---
+
+### 🔐 Controlled Folder Access (Ransomware Protection)
+
+**Ransomware Defense:**
+- **Mode:** Audit Mode (logs unauthorized access attempts without blocking)
+- **Protected Folders:** System folders and user document directories
+- **Monitoring:** Detects unauthorized applications attempting to modify protected files
+
+**What It Monitors:**
+- Unauthorized file encryption attempts
+- Suspicious file modification patterns
+- Processes attempting to access protected folders
+- Ransomware-like behavior indicators
+
+---
+
+### 🔍 Real-Time Protection & Scanning
+
+**Comprehensive Malware Detection:**
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Behavior Monitoring** | Enabled | Analyzes process behavior for malicious patterns |
+| **Process Scanning** | Enabled | Scans running processes for threats |
+| **Script Scanning** | Enabled | Monitors PowerShell, JavaScript, and VBScript execution |
+| **Downloaded Files** | Enabled | Scans all downloads and attachments |
+| **Max Download Size** | 20,480 KB (20 MB) | Maximum file size scanned automatically |
+| **File Activity Monitoring** | Enabled | Tracks file and program activity across the system |
+| **Raw Volume Writes** | Enabled | Detects direct disk write attempts (ransomware indicator) |
+
+**Advanced Detection Capabilities:**
+- **Fileless Malware Detection:** Monitors in-memory threats and script-based attacks
+- **Living-off-the-Land Detection:** Identifies abuse of legitimate Windows tools
+- **Document Exploit Detection:** Scans embedded content in Office files and PDFs
+- **Command Line Monitoring:** Analyzes process execution with full command arguments
+
+---
+
+### 📅 Scheduled Scan Configuration
+
+**Automated Threat Scanning:**
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| **Quick Scans Per Day** | 2 | Efficient threat detection without full system scan overhead |
+| **Archive Scanning** | Enabled | Detects threats hidden in compressed files |
+| **Archive Depth** | 5 levels | Scans nested archives up to 5 layers deep |
+| **Packed Executables** | Enabled | Analyzes compressed/obfuscated executables |
+| **Removable Drives** | Enabled | Scans USB drives and external media |
+| **Email Scanning** | Enabled | Inspects email attachments and embedded content |
+| **Heuristics** | Enabled | Detects unknown threats via behavioral analysis |
+| **Pre-Scan Updates** | Enabled | Updates signatures before scheduled scans |
+
+**Benefits:**
+- Twice-daily quick scans catch threats missed by real-time protection
+- Archive scanning prevents malware delivery via compressed files
+- Heuristics detect zero-day threats without signatures
+- Email scanning protects against phishing attachments
+
+---
+
+### ⚔️ Exploit Protection
+
+**System and Application Hardening:**
+- **Configuration Source:** `\\DC\GPO-Configs\ExploitProtectionLite.xml`
+- **Scope:** System-wide and per-application exploit mitigations
+- **Deployment:** Centralized configuration via network share
+
+**Mitigation Technologies Applied:**
+
+| Mitigation | Description |
+|------------|-------------|
+| **DEP (Data Execution Prevention)** | Prevents code execution in data-only memory regions |
+| **ASLR (Address Space Layout Randomization)** | Randomizes memory addresses to prevent exploit reliability |
+| **CFG (Control Flow Guard)** | Validates indirect function calls to prevent ROP attacks |
+| **SEHOP (Structured Exception Handler Overwrite Protection)** | Protects exception handler chains |
+| **Bottom-up ASLR** | Randomizes memory allocations |
+| **High-entropy ASLR** | Increases randomization entropy for 64-bit processes |
+| **Validate Exception Chains** | Ensures exception handler integrity |
+| **Validate Stack Integrity** | Detects stack buffer overflows |
+
+**Protected Applications (ExploitProtectionLite.xml):**
+- Microsoft Edge
+- Internet Explorer
+- Google Chrome
+- Mozilla Firefox
+- Microsoft Office applications
+- Adobe Reader
+- Java runtime
+- Common system utilities
+
+---
+
+### 📊 Microsoft Defender Application Guard
+
+**Container-Based Isolation:**
+- **Application Guard Auditing:** Enabled
+- **Event Collection:** System events from isolated containers logged to host
+- **Purpose:** Monitors browsing in hardware-isolated environments
+
+**Security Boundary:**
+- Untrusted websites open in Hyper-V isolated container
+- Enterprise resources remain accessible from normal browser
+- Auditing provides visibility into isolated session activity
+
+---
+
+### 🚀 GPO Deployment Details
+
+**Automated Configuration:**
+- **GPO Name:** `Exploit-Protections-Workstations`
+- **Linked to:** Workstations OU (`OU=Workstations,DC=contoso,DC=local`)
+- **Enforcement:** Link enforced (NoOverride = true)
+- **Scope:** Computer Configuration only
+
+**Registry Paths Configured:**
+```
+HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\
+  ├── MpEngine (Cloud protection settings)
+  ├── Real-Time Protection (Scanning configurations)
+  ├── Scan (Scheduled scan parameters)
+  ├── Spynet (MAPS membership)
+  ├── Windows Defender Exploit Guard
+  │   ├── Controlled Folder Access
+  │   ├── Network Protection
+  │   └── Exploit Protection
+  └── Reporting (MAPS reporting settings)
+```
+
+---
+
+### ✅ Verify Configuration
+
+After GPO application, verify the protection features are active:
+
+```powershell
+# Check overall Defender status
+Get-MpComputerStatus | Select-Object `
+    RealTimeProtectionEnabled, `
+    BehaviorMonitorEnabled, `
+    IoavProtectionEnabled, `
+    NISEnabled, `
+    AntivirusEnabled
+
+# Verify cloud protection (MAPS)
+Get-MpPreference | Select-Object `
+    MAPSReporting, `
+    SubmitSamplesConsent, `
+    DisableBlockAtFirstSeen, `
+    CloudBlockLevel, `
+    CloudExtendedTimeout
+
+# Check Network Protection status
+Get-MpPreference | Select-Object EnableNetworkProtection
+
+# Verify Controlled Folder Access
+Get-MpPreference | Select-Object EnableControlledFolderAccess
+
+# Check exploit protection configuration
+Get-ProcessMitigation -System
+Get-ProcessMitigation -Name "iexplore.exe"
+Get-ProcessMitigation -Name "chrome.exe"
+```
+
+**Expected Values:**
+
+| Setting | Expected Value | Meaning |
+|---------|----------------|---------|
+| `MAPSReporting` | 2 | Advanced MAPS membership |
+| `SubmitSamplesConsent` | 3 | Send all samples automatically |
+| `DisableBlockAtFirstSeen` | False | BAFS enabled |
+| `CloudExtendedTimeout` | 10 | 10-second cloud check timeout |
+| `EnableNetworkProtection` | 2 | Audit mode |
+| `EnableControlledFolderAccess` | 2 | Audit mode |
+
+---
+
+### 📈 Monitoring and Event IDs
+
+**Key Event Logs:**
+
+| Event ID | Log | Description |
+|----------|-----|-------------|
+| **1116** | Microsoft-Windows-Windows Defender/Operational | Malware detected |
+| **1117** | Microsoft-Windows-Windows Defender/Operational | Malware action taken |
+| **1125** | Microsoft-Windows-Windows Defender/Operational | Network Protection audited event |
+| **1126** | Microsoft-Windows-Windows Defender/Operational | Network Protection blocked event |
+| **5007** | Microsoft-Windows-Windows Defender/Operational | Configuration changed |
+| **1123** | Microsoft-Windows-Windows Defender/Operational | Controlled Folder Access audited |
+| **1124** | Microsoft-Windows-Windows Defender/Operational | Controlled Folder Access blocked |
+
+**Monitor Network Protection Events:**
+
+```powershell
+# View Network Protection audit events
+Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | 
+    Where-Object {$_.Id -eq 1125} | 
+    Format-Table TimeCreated, Message -Wrap
+
+# View Controlled Folder Access audit events
+Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | 
+    Where-Object {$_.Id -eq 1123} | 
+    Format-Table TimeCreated, Message -Wrap
+```
+
+**Microsoft Defender XDR Portal Monitoring:**
+- Navigate to: **Reports → Device protection → Web protection**
+- View Network Protection blocks and audits
+- Navigate to: **Reports → Device protection → Controlled folder access**
+- Monitor ransomware protection events
+
+---
+
+### ⚠️ Important Notes
+
+> **⚠️ Audit Mode Strategy**  
+> Network Protection and Controlled Folder Access are configured in **Audit Mode** to allow baseline establishment:
+> - Run in audit mode for 30+ days minimum
+> - Analyze telemetry in Microsoft Defender XDR portal
+> - Identify and document false positives
+> - Create necessary exclusions before enforcement
+> - Test in pilot group before production rollout
+
+> **💡 Cloud Protection Requirements**  
+> Advanced MAPS and Block at First Sight require:
+> - Active internet connectivity to Microsoft cloud services
+> - Outbound access to Microsoft Defender endpoints
+> - Windows Defender Antivirus in active mode (not passive/disabled)
+> - Sufficient cloud check timeout for analysis (configured: 10 seconds)
+
+> **🔐 Exploit Protection Best Practices**  
+> The ExploitProtectionLite.xml configuration:
+> - Applies system-wide mitigations for maximum coverage
+> - Includes per-application settings for common targets
+> - Balances security with application compatibility
+> - Should be tested with critical line-of-business applications before production deployment
+
+> **🌐 Network Protection Performance**  
+> Network Protection in audit mode has minimal impact:
+> - Logging overhead is negligible
+> - No blocking operations in audit mode
+> - SmartScreen lookups cached for performance
+> - Suitable for all workstation types and user profiles
+
+> **📊 MAPS Telemetry Privacy**  
+> Advanced MAPS membership shares:
+> - File hashes and metadata (not file contents unless explicitly consented)
+> - Threat detection information
+> - Sample files automatically submitted for analysis
+> - Ensure compliance with organizational data policies before deployment
+
+> **🔄 Transitioning to Block Mode**  
+> After audit period, transition Network Protection and Controlled Folder Access to block mode:
+> ```powershell
+> # Network Protection - Block mode (requires GPO update or direct config)
+> Set-MpPreference -EnableNetworkProtection Enabled  # Value = 1
+> 
+> # Controlled Folder Access - Block mode
+> Set-MpPreference -EnableControlledFolderAccess Enabled  # Value = 1
+> ```
+> **Note:** Prefer GPO configuration over local settings for enterprise management
+
+</details>
+
+---
+
+<details>
 <summary><b>⚙️ Configure Exploit Protection GPO Settings</b></summary>
 
 <br>
