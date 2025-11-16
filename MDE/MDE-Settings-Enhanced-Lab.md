@@ -979,7 +979,7 @@ The GPO configuration will be completed in the **Configure Exploit Protection GP
 
 ---
 
-## 📥 Import MDE Group Policy Objects
+## 🛠️ Import MDE Group Policy Objects
 
 ### Prerequisites
 
