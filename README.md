@@ -26,7 +26,7 @@ MDI Official Documenation: [Link](https://learn.microsoft.com/en-us/defender-for
 - Automate MDI configuration with the DefenderForIdentity module
 - Configure required Active Directory settings (gMSA, audit policies, GPOs)
 - Execute and detect common identity-based attacks
-- Investigate security incidents using the Microsoft Defender portal
+- Investigate security incidents using the Microsoft Defender XDR portal
 
 ---
 
