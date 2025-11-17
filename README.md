@@ -196,12 +196,10 @@ Get-ADOptionalFeature -Filter {Name -like "Recycle Bin Feature"} | Select-Object
 1. Open a browser and navigate to: **https://security.microsoft.com**
 2. Sign in with your Global Administrator or Security Administrator credentials
 3. Navigate to **Settings** → **Identities**
-
-[SCREENSHOT: Microsoft Defender portal - Settings → Identities]
-
 4. On the **Sensors** page, note the **Access key** (you'll need this for sensor installation)
 
-[SCREENSHOT: Access key location on Sensors page]
+<img width="1912" height="624" alt="image" src="https://github.com/user-attachments/assets/87b35aea-72d7-41d3-9f80-828335babec2" />
+
 
 ---
 
