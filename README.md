@@ -16,6 +16,7 @@
 ## Overview
 
 This lab guide provides hands-on experience deploying Microsoft Defender for Identity (MDI) and using it to detect and investigate identity-based attacks. The lab emphasizes PowerShell-based configuration and automation wherever possible.
+MDI Official Documenation: [Link](https://learn.microsoft.com/en-us/defender-for-identity/deploy/deploy-defender-identity)
 
 **Estimated Time**: 210 minutes (Day 1: 90 minutes, Day 2: 120 minutes)
 
@@ -285,9 +286,10 @@ Npcap is a packet capture library required by the MDI sensor for network traffic
 
 1. Open a web browser and navigate to: **https://npcap.com/#download**
 
-2. Download the latest Npcap installer (e.g., `npcap-2.84.exe`)
+2. Download the latest Npcap installer (e.g., `npcap-1.84.exe`)
 
-[SCREENSHOT: Npcap download page]
+<img width="1013" height="298" alt="image" src="https://github.com/user-attachments/assets/fd914668-769b-4b28-a1cf-21bffe437c80" />
+
 
 3. Run the installer with the following settings:
 
