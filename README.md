@@ -1355,8 +1355,8 @@ For issues or questions about this lab:
 **Disclaimer**: This lab is for educational purposes only. Attack tools should only be used in authorized lab environments. Do not use these techniques against production systems or systems you do not own.
 
 
-## MDI Sensor V2 - Configured
+### MDI Sensor V2 - Configured
 ![image](https://github.com/user-attachments/assets/7ef6f61b-b139-4505-8a20-e7d56525f28f)
 
-## MDI routing traffic through squid proxy (containerized via ACI)
+### MDI routing traffic through squid proxy (containerized via ACI)
 ![image](https://github.com/user-attachments/assets/66507075-332e-4e16-b81f-3f28b45dc8fc)
