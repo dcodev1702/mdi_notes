@@ -343,8 +343,6 @@ Test-Path "C:\Program Files\Npcap"
 - Npcap service should show `Status: Running` and `StartType: Automatic`
 - Npcap program files should exist in `C:\Program Files\Npcap`
 
-<img width="912" height="330" alt="image" src="https://github.com/user-attachments/assets/54c0e229-5611-46d3-a87a-85d17d6769fe" />
-
 
 ---
 
@@ -411,7 +409,9 @@ Get-EventLog -LogName "Application" -Source "Azure Advanced Threat Protection Se
 3. Wait 5-10 minutes and refresh the page
 4. Verify that **DC** appears in the sensors list with a status of **Running**
 
-[SCREENSHOT: DC sensor showing as Running in portal]
+![image](https://github.com/user-attachments/assets/7ef6f61b-b139-4505-8a20-e7d56525f28f)
+
+<img width="912" height="330" alt="image" src="https://github.com/user-attachments/assets/54c0e229-5611-46d3-a87a-85d17d6769fe" />
 
 ---
 
@@ -1357,10 +1357,6 @@ For issues or questions about this lab:
 
 **Disclaimer**: This lab is for educational purposes only. Attack tools should only be used in authorized lab environments. Do not use these techniques against production systems or systems you do not own.
 
-
-
-### MDI Sensor V2 - Configured
-![image](https://github.com/user-attachments/assets/7ef6f61b-b139-4505-8a20-e7d56525f28f)
 
 ### MDI routing traffic through squid proxy (containerized via ACI)
 ![image](https://github.com/user-attachments/assets/66507075-332e-4e16-b81f-3f28b45dc8fc)
