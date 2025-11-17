@@ -346,8 +346,6 @@ Test-Path "C:\Program Files\Npcap"
 <img width="912" height="330" alt="image" src="https://github.com/user-attachments/assets/54c0e229-5611-46d3-a87a-85d17d6769fe" />
 
 
-**Important**: If you skip this step, the MDI sensor installation will fail or the sensor will not be able to capture network traffic properly.
-
 ---
 
 ### Task 5: Download MDI Sensor
