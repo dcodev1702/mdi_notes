@@ -1071,7 +1071,8 @@ Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
 
 
 **Verify imported settings:**
-<img width="1147" height="803" alt="image" src="https://github.com/user-attachments/assets/cacfc95f-3e92-416f-a33e-a26520164d6f" />
+<img width="1147" height="580" alt="image" src="https://github.com/user-attachments/assets/26861104-a757-4ee7-b092-16ab4fc4ce5f" />
+
 
 ```powershell
 # Check audit policy
