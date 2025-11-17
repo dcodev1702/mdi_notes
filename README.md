@@ -81,7 +81,7 @@ Get-ADDomain | Select-Object Name, DNSRoot, DomainMode
 # Verify domain controllers
 Get-ADDomainController -Filter * | Select-Object Name, OperatingSystem, IPv4Address
 
-# Verify member servers are joined to domain
+# Verify clients are joined to the domain [contoso.local]
 Get-ADComputer -Filter {OperatingSystem -like "*Windows 11*"} | Select-Object Name, DNSHostName
 
 # Test connectivity to Microsoft Defender for Identity service
