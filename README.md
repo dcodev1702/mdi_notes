@@ -569,15 +569,11 @@ gpresult /H C:\Temp\gpresult.html
 Start-Process "C:\Temp\gpresult.html"
 ```
 
-[SCREENSHOT: MDI sensor service running and healthy]
-
 **Final Verification in Microsoft Defender Portal**:
 
 1. Navigate to **https://security.microsoft.com**
 2. Go to **Settings** → **Identities** → **Health issues**
 3. Verify there are no critical health alerts for DC
-
-[SCREENSHOT: No health issues in Defender portal]
 
 ---
 
@@ -591,7 +587,8 @@ Microsoft Defender for Identity uses learning periods and thresholds to distingu
 2. Navigate to **Settings** → **Identities**
 3. Under **Advanced features**, click **Adjust alerts thresholds**
 
-[SCREENSHOT: Settings → Identities → Adjust alerts thresholds navigation]
+<img width="1909" height="722" alt="image" src="https://github.com/user-attachments/assets/cffb099e-9c73-4e02-aec4-0b77cbcaf204" />
+
 
 **Configure Recommended Test Mode** (Optional for Lab):
 
@@ -610,8 +607,6 @@ Microsoft Defender for Identity uses learning periods and thresholds to distingu
    - Recommended test mode is useful for lab environments to generate more alerts
    - Note: Test mode automatically disables after the specified date
 
-[SCREENSHOT: Recommended test mode toggle enabled]
-
 3. **Manually Adjust Individual Alert Thresholds** (Alternative):
    
    For a lab environment, consider setting these alerts to **Low** threshold:
@@ -627,7 +622,6 @@ Microsoft Defender for Identity uses learning periods and thresholds to distingu
    | Suspicious additions to sensitive groups | Low | Detect privilege escalation |
    | User and Group membership reconnaissance (SAMR) | Low | Detect enumeration attempts |
 
-[SCREENSHOT: Alert thresholds configured to Low for lab environment]
 
 **Understanding Threshold Levels**:
 
@@ -643,8 +637,6 @@ Microsoft Defender for Identity uses learning periods and thresholds to distingu
 1. Scroll through the alert list to confirm your threshold selections
 2. Click **Save** if you made any changes
 3. Changes take effect immediately
-
-[SCREENSHOT: Alert threshold configuration saved]
 
 ---
 
@@ -804,8 +796,6 @@ Get-ChildItem -Path $downloadPath -Recurse -Include *.exe | Select-Object FullNa
 ```
 
 **Note**: These are legitimate security tools used for authorized penetration testing. Use them only in controlled lab environments.
-
-[SCREENSHOT: Attack tools downloaded successfully]
 
 ---
 
@@ -1339,7 +1329,7 @@ Restart-Service -Name AATPSensor
 
 ---
 
-**Lab Version**: 1.0  
+**Lab Version**: 1.0.2a  
 **Last Updated**: November 2025  
 **Domain**: contoso.local  
 **Lab Duration**: 210 minutes (3.5 hours)
