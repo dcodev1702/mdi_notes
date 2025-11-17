@@ -16,6 +16,7 @@
 ## Overview
 
 This lab guide provides hands-on experience deploying Microsoft Defender for Identity (MDI) and using it to detect and investigate identity-based attacks. The lab emphasizes PowerShell-based configuration and automation wherever possible.
+
 MDI Official Documenation: [Link](https://learn.microsoft.com/en-us/defender-for-identity/deploy/deploy-defender-identity)
 
 **Estimated Time**: 210 minutes (Day 1: 90 minutes, Day 2: 120 minutes)
