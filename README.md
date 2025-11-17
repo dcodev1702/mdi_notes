@@ -147,11 +147,11 @@ The DefenderForIdentity PowerShell module automates MDI configuration tasks, red
 # Check PowerShell version (must be 5.1 or 7.4+)
 $PSVersionTable.PSVersion
 
-# Import the Active Directory module
-Import-Module -Name ActiveDirectory
-
 # Install the DefenderForIdentity module from PowerShell Gallery
 Install-Module -Name DefenderForIdentity -Force -Scope AllUsers
+
+# Import the Active Directory module
+Import-Module -Name ActiveDirectory
 
 # If using PowerShell 7.4+, import GroupPolicy module first
 Import-Module -Name GroupPolicy -SkipEditionCheck
