@@ -92,7 +92,7 @@ Test-NetConnection -ComputerName triprd1wceuw1sensorapi.atp.azure.com -Port 443
 **Expected Output**:
 - NTDS and DNS services should be "Running"
 - Domain should be contoso.local
-- Both WIN11-01 and WIN11-02 should appear in domain computers
+- Both WIN11-01 and WIN11-02 should appear in domain Workstationss OU
 - Connectivity tests should show `TcpTestSucceeded : True`
 
 [SCREENSHOT: PowerShell output showing successful verification]
