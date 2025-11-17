@@ -1,4 +1,4 @@
-# Microsoft Defender for Identity (MDI) Lab Guide
+# Microsoft Defender for Identity (MDI) - Enhanced Lab Guide
 
 ## Table of Contents
 - [Overview](#overview)
