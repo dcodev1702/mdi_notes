@@ -558,7 +558,8 @@ Get-Service -Name AATPSensor
 Get-Service -Name AATPSensor | Format-List *
 
 # Check sensor connectivity
-Test-NetConnection -ComputerName sensorapi.atp.azure.com -Port 443
+# Change 'm365x12345678 TO YOUR TENANT NAME.
+Test-NetConnection -ComputerName m365x12345678sensorapi.atp.azure.com -Port 443
 
 # Review sensor event logs
 Get-EventLog -LogName "Application" -Source "Azure Advanced Threat Protection Sensor" -Newest 20 | `
