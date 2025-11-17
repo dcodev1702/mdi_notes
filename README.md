@@ -300,11 +300,11 @@ New-Item -Path "C:\Temp" -ItemType Directory -Force
 
 # After manually downloading, install Npcap with required options
 # Note: The installer path may vary based on your download location
-$npcapInstaller = "$env:USERPROFILE\Downloads\npcap-2.84.exe"  # Adjust version as needed
+$npcapInstaller = "$env:USERPROFILE\Downloads\npcap-1.84.exe"  # Adjust version as needed
 
 # Install Npcap with WinPcap API-compatible mode enabled and loopback support disabled
 # Note: /S flag does not work with non-OEM versions of Npcap
-Start-Process -FilePath $npcapInstaller -ArgumentList "/winpcap_mode=yes /loopback_support=no" -Wait
+Start-Process -FilePath $npcapInstaller -ArgumentList "/winpcap_mode=yes /loopback_support=no /admin_only=no" -Wait
 
 # Verify Npcap service is installed and running
 Get-Service -Name "npcap" -ErrorAction SilentlyContinue | Select-Object Name, DisplayName, Status, StartType
@@ -319,7 +319,8 @@ Get-Service -Name "npcap" -ErrorAction SilentlyContinue | Select-Object Name, Di
 4. Click **Install**
 5. Restart the computer if prompted
 
-[SCREENSHOT: Npcap installation options with WinPcap compatibility mode selected]
+<img width="999" height="658" alt="image" src="https://github.com/user-attachments/assets/5f58920d-06a0-4d05-8ab8-c1f502929bfb" />
+
 
 > **⚠️ IMPORTANT WARNING ⚠️**  
 > **The "Install Npcap in WinPcap API-compatible Mode" checkbox MUST be selected during installation.**  
@@ -342,7 +343,8 @@ Test-Path "C:\Program Files\Npcap"
 - Npcap service should show `Status: Running` and `StartType: Automatic`
 - Npcap program files should exist in `C:\Program Files\Npcap`
 
-[SCREENSHOT: Npcap service verification]
+<img width="912" height="514" alt="image" src="https://github.com/user-attachments/assets/da371410-c0e5-4d7d-ad7b-6569e238a813" />
+
 
 **Important**: If you skip this step, the MDI sensor installation will fail or the sensor will not be able to capture network traffic properly.
 
@@ -389,7 +391,7 @@ Set-Location -Path "C:\Temp\MDISensor"
 
 # Install the MDI Sensor silently
 Start-Process -Wait -NoNewWindow -FilePath ".\Azure ATP Sensor Setup.exe" `
-    -ArgumentList "/quiet NetFrameworkCommandLineArguments=`"/q`" AccessKey=$AccessKey DSA=$DSA"
+    -ArgumentList "/quiet NetFrameworkCommandLineArguments=`"/q`" AccessKey=$AccessKey"
 
 # Verify the service is installed and running
 Get-Service -Name AATPSensor | Select-Object Name, DisplayName, Status, StartType
