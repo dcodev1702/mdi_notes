@@ -1524,7 +1524,7 @@ If you need to provision your lab infrastructure from scratch, consider using th
 🔗 **OTRF Blacksmith:** https://github.com/OTRF/Blacksmith
 
 Blacksmith provides automated deployment templates for:
-- Windows Server Domain Controllers
+- Windows Server Domain Controllers (2019 & Up)
 - Windows 11 clients
 - Active Directory environments
 - Pre-configured logging and detection scenarios
