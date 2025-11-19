@@ -1100,6 +1100,9 @@ Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
 
 # Check Exploit Protection
 Get-ProcessMitigation -System
+
+# Check Exploit Protection for Microsoft Word
+Get-ProcessMitigation -Name winword.exe
 ```
 
 
