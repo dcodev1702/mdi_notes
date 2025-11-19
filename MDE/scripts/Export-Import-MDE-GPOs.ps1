@@ -267,4 +267,4 @@ function Import-MDE-GPOs {
 
 # Usage Examples:
 # Backup-MDE-GPOs
-# Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
+Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
