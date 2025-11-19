@@ -548,9 +548,12 @@ Get-MpPreference | Select-Object EnableNetworkProtection
 
 # Verify Controlled Folder Access
 Get-MpPreference | Select-Object EnableControlledFolderAccess
+```
 
+```powershell
 # Check exploit protection configuration
 Get-ProcessMitigation -System
+Get-ProcessMitigation -Name "winword.exe"
 Get-ProcessMitigation -Name "iexplore.exe"
 Get-ProcessMitigation -Name "chrome.exe"
 ```
