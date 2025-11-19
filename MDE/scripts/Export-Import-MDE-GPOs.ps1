@@ -10,10 +10,10 @@
     related Group Policy Objects in an Active Directory environment.
     
     The script handles four specific GPOs:
-    - ASR-Audit-Mode-Workstations
+    - ASR Audit Policy - Workstations
     - MDE Audit Policy - Workstations
     - MDE Audit Policy - Domain Controllers
-    - Exploit-Protections-Workstations
+    - MDE Exploit Protections Policy - Workstations
     
     Backup-MDE-GPOs:
     - Exports GPOs to a specified backup location
@@ -83,10 +83,10 @@ function Backup-MDE-GPOs {
     Write-Host "Backing up MDE GPOs to: $BackupPath" -ForegroundColor Cyan
     
     # Back up each GPO
-    Backup-GPO -Name "ASR-Audit-Mode-Workstations" -Path $BackupPath
+    Backup-GPO -Name "ASR Audit Policy - Workstations" -Path $BackupPath
     Backup-GPO -Name "MDE Audit Policy - Workstations" -Path $BackupPath
     Backup-GPO -Name "MDE Audit Policy - Domain Controllers" -Path $BackupPath
-    Backup-GPO -Name "Exploit-Protections-Workstations" -Path $BackupPath
+    Backup-GPO -Name "MDE Exploit Protections Policy - Workstations" -Path $BackupPath
     
     Write-Host "`nBackup complete! GUID Mapping:" -ForegroundColor Green
     
@@ -234,9 +234,9 @@ function Import-MDE-GPOs {
             
             # Link and enforce GPO with improved error handling
             try {
-                $ExistingLink = Get-GPInheritance -Target $TargetOU | 
-                    Select-Object -ExpandProperty GpoLinks | 
-                    Where-Object { $_.DisplayName -eq $GPOName }
+                $ExistingLink = Get-GPInheritance -Target $TargetOU |
+                     Select-Object -ExpandProperty GpoLinks |
+                     Where-Object { $_.DisplayName -eq $GPOName }
                 
                 if ($ExistingLink) {
                     Write-Host "  GPO already linked to $TargetOU" -ForegroundColor Yellow
@@ -267,5 +267,4 @@ function Import-MDE-GPOs {
 
 # Usage Examples:
 # Backup-MDE-GPOs
-
-Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
+# Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
