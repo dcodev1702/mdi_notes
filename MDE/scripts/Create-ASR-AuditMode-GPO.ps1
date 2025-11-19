@@ -1,6 +1,6 @@
 <#
     Author: DCODEV1702 & Claude Sonnet 4.5
-    Date: 15 Nov 2025
+    Date: 19 Nov 2025
     
     .SYNOPSIS
     Creates and configures a Group Policy Object for Attack Surface Reduction (ASR) rules in Audit mode.
@@ -42,7 +42,7 @@
     
     .PARAMETER GPOName
     Name of the Group Policy Object to create or update.
-    Default: "ASR-Audit-Mode-Workstations"
+    Default: "ASR Audit Policy Workstations"
     
     .PARAMETER OU
     Distinguished Name of the Organizational Unit to link the GPO to.
@@ -54,7 +54,7 @@
     Creates the ASR audit mode GPO with default settings and links it to the Workstations OU.
     
     .EXAMPLE
-    .\Create-ASR-AuditMode-GPO.ps1 -GPOName "ASR-Audit-Test" -OU "OU=TestComputers,DC=contoso,DC=local"
+    .\Create-ASR-AuditMode-GPO.ps1 -GPOName "ASR Audit Policy - Workstations" -TargetOU "OU=Workstations,DC=contoso,DC=local"
     
     Creates a custom-named GPO and links it to a different OU.
     
@@ -82,10 +82,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [string]$GPOName = "ASR-Audit-Mode-Workstations",
+    [string]$GPOName = "ASR Audit Policy - Workstations",
     
     [Parameter(Mandatory=$false)]
-    [string]$OU = "OU=Workstations,DC=contoso,DC=local"
+    [string]$TargetOU = "OU=Workstations,DC=contoso,DC=local"
 )
 
 # Import required module
@@ -106,13 +106,13 @@ try {
     Write-Host "    GPO created successfully." -ForegroundColor Green
     
     # Link to OU
-    Write-Host "    Linking GPO to OU: $OU" -ForegroundColor Yellow
-    New-GPLink -Name $GPOName -Target $OU -LinkEnabled Yes -Enforced Yes
+    Write-Host "    Linking GPO to Target OU: $TargetOU" -ForegroundColor Yellow
+    New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes
     Write-Host "    GPO linked and enforced successfully." -ForegroundColor Green
 }
 
 # Registry path for ASR rules
-$RegPath = "Software\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR"
+$RegPath = "HKLM\Software\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR"
 
 Write-Host "`n[*] Enabling Attack Surface Reduction feature..." -ForegroundColor Yellow
 
@@ -161,7 +161,7 @@ Write-Host "  Name: $($GPO.DisplayName)" -ForegroundColor Gray
 Write-Host "  GUID: {$($GPO.Id)}" -ForegroundColor Gray
 Write-Host "  ASR Rules Configured: $($ASRRules.Count)" -ForegroundColor Gray
 Write-Host "  Mode: Audit (value = 2)" -ForegroundColor Gray
-Write-Host "  Linked to: $OU" -ForegroundColor Gray
+Write-Host "  Linked to: $TargetOU" -ForegroundColor Gray
 
 Write-Host "`nNext Steps:" -ForegroundColor White
 Write-Host "  1. Run 'gpupdate /force' on target workstations" -ForegroundColor Gray
