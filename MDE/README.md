@@ -110,6 +110,23 @@ The **MDE Audit Policy GPO** implements critical Security Event Log optimization
 - Enforced GPO links ensure policy cannot be overridden
 - Automatic GPO refresh triggers immediate application
 
+> **🔴 CRITICAL: Domain Controller Reboot Required**  
+> After applying the audit policy GPO to Domain Controllers, **a reboot is required** for the audit policies to take full effect. The `SCENoApplyLegacyAuditPolicy` registry setting affects the Local Security Authority (LSA) subsystem, which only loads at boot time and does not dynamically reload this configuration change.
+> 
+> **Steps After GPO Application:**
+> 1. Run `gpupdate /force` on the Domain Controller
+> 2. Reboot the Domain Controller: `Restart-Computer -Force`
+> 3. After reboot, verify audit policies: `auditpol /get /category:*`
+> 
+> **Expected Behavior:**
+> - ✅ Before reboot: Group Policy Management Editor shows correct audit settings, but `auditpol` shows old settings
+> - ✅ After reboot: Both GPMC and `auditpol` show matching audit configurations
+> 
+> **Why This Happens:**
+> - The registry key `HKLM\System\CurrentControlSet\Control\Lsa\SCENoApplyLegacyAuditPolicy` forces Windows to use advanced audit policies instead of legacy audit policies
+> - LSA (Local Security Authority) reads this setting only during system initialization
+> - Without a reboot, legacy audit policies from other GPOs (like Default Domain Controllers Policy) continue to override the advanced audit.csv settings
+
 ---
 
 ### ✅ Verify Security Event Log Configuration
