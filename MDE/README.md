@@ -1043,7 +1043,7 @@ Unblock-File -Path "$TempPath\Export-Import-MDE-GPOs.ps1"
 **Step 5:** Execute the import script with the backup path
 
 ```powershell
-& "$TempPath\Export-Import-MDE-GPOs.ps1" -BackupPath "$TempPath\MDE-GPO-Backup"
+& "$TempPath\Export-Import-MDE-GPOs.ps1"
 ```
 
 **Step 6:** Remove downloaded archive, GPO's, and scripts
