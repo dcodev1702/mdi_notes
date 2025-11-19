@@ -346,7 +346,7 @@ DeviceEvents
 
 <br>
 
-The **Exploit-Protections-Workstations** GPO (`Exploit-Protections-Workstations`) provides comprehensive endpoint security by configuring Microsoft Defender's advanced protection features, cloud intelligence integration, and exploit mitigation capabilities. This GPO establishes a robust security baseline for workstations while maintaining audit-friendly configurations for controlled rollout.
+The **MDE Exploit Protections Policy - Workstations** GPO (`MDE Exploit Protections Policy - Workstations`) provides comprehensive endpoint security by configuring Microsoft Defender's advanced protection features, cloud intelligence integration, and exploit mitigation capabilities. This GPO establishes a robust security baseline for workstations while maintaining audit-friendly configurations for controlled rollout.
 
 ---
 
