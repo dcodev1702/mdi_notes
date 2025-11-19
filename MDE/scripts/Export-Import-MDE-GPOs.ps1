@@ -92,10 +92,23 @@ function Backup-MDE-GPOs {
     
     # Display GUID mapping for reference
     Get-ChildItem $BackupPath -Directory | ForEach-Object {
-        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
-        [PSCustomObject]@{
-            BackupID = $_.Name
-            GPOName  = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        $BkupInfoPath = "$($_.FullName)\bkupInfo.xml"
+        $BackupXmlPath = "$($_.FullName)\Backup.xml"
+        $GPOName = $null
+
+        if (Test-Path $BkupInfoPath) {
+            [xml]$BkupInfo = Get-Content $BkupInfoPath
+            $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
+        } elseif (Test-Path $BackupXmlPath) {
+            [xml]$BackupXml = Get-Content $BackupXmlPath
+            $GPOName = $BackupXml.GroupPolicyBackupScheme.GroupPolicyObject.GroupPolicyCoreSettings.DisplayName.'#cdata-section'
+        }
+
+        if ($GPOName) {
+            [PSCustomObject]@{
+                BackupID = $_.Name
+                GPOName  = $GPOName
+            }
         }
     } | Format-Table -AutoSize
     
@@ -164,40 +177,79 @@ function Import-MDE-GPOs {
     
     # Import GPOs
     Get-ChildItem $BackupPath -Directory | ForEach-Object {
-        [xml]$BkupInfo = Get-Content "$($_.FullName)\bkupInfo.xml"
-        $GPOName  = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
-        $BackupId = $BkupInfo.BackupInst.ID.'#cdata-section'
+        $BkupInfoPath = "$($_.FullName)\bkupInfo.xml"
+        $BackupXmlPath = "$($_.FullName)\Backup.xml"
         
-        Write-Host "`nProcessing: $GPOName" -ForegroundColor Yellow
+        # Regenerate bkupInfo.xml if missing
+        if ((-not (Test-Path $BkupInfoPath)) -and (Test-Path $BackupXmlPath)) {
+            try {
+                Write-Host "  Regenerating missing bkupInfo.xml for $($_.Name)..." -ForegroundColor Yellow
+                [xml]$BackupXml = Get-Content $BackupXmlPath
+                $GpoId = $BackupXml.GroupPolicyBackupScheme.GroupPolicyObject.GroupPolicyCoreSettings.ID.'#cdata-section'
+                $GpoDomain = $BackupXml.GroupPolicyBackupScheme.GroupPolicyObject.GroupPolicyCoreSettings.Domain.'#cdata-section'
+                $GpoName = $BackupXml.GroupPolicyBackupScheme.GroupPolicyObject.GroupPolicyCoreSettings.DisplayName.'#cdata-section'
+                $BackupTime = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss")
+                
+                $NewBkupInfo = @"
+<BackupInst xmlns="http://www.microsoft.com/GroupPolicy/GPOOperations/Manifest">
+  <GPOGuid><![CDATA[$GpoId]]></GPOGuid>
+  <GPODomain><![CDATA[$GpoDomain]]></GPODomain>
+  <GPODomainGuid><![CDATA[{00000000-0000-0000-0000-000000000000}]]></GPODomainGuid>
+  <GPODomainController><![CDATA[DC.$GpoDomain]]></GPODomainController>
+  <BackupTime><![CDATA[$BackupTime]]></BackupTime>
+  <ID><![CDATA[$($_.Name)]]></ID>
+  <Comment><![CDATA[$GpoName]]></Comment>
+  <GPODisplayName><![CDATA[$GpoName]]></GPODisplayName>
+</BackupInst>
+"@
+                $NewBkupInfo | Set-Content -Path $BkupInfoPath
+            } catch {
+                Write-Warning "Failed to regenerate bkupInfo.xml: $_"
+            }
+        }
+
+        $GPOName = $null
+        $BackupId = $_.Name
         
-        # Determine target OU
-        if ($GPOName -like "*Domain Controllers*") {
-            $TargetOU = $DCsOU
-            Write-Host "  Target OU: Domain Controllers" -ForegroundColor Gray
-        } else {
-            $TargetOU = $WorkstationsOU
-            Write-Host "  Target OU: Workstations" -ForegroundColor Gray
+        if (Test-Path $BkupInfoPath) {
+            [xml]$BkupInfo = Get-Content $BkupInfoPath
+            $GPOName  = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
         }
         
-        # Import GPO
-        Import-GPO -BackupId $BackupId -TargetName $GPOName -Path $BackupPath -CreateIfNeeded
-        Write-Host "  GPO imported." -ForegroundColor Green
-        
-        # Link and enforce GPO with improved error handling
-        try {
-            $ExistingLink = Get-GPInheritance -Target $TargetOU | 
-                Select-Object -ExpandProperty GpoLinks | 
-                Where-Object { $_.DisplayName -eq $GPOName }
+        if ($GPOName) {
+            Write-Host "`nProcessing: $GPOName" -ForegroundColor Yellow
             
-            if ($ExistingLink) {
-                Write-Host "  GPO already linked to $TargetOU" -ForegroundColor Yellow
+            # Determine target OU
+            if ($GPOName -like "*Domain Controllers*") {
+                $TargetOU = $DCsOU
+                Write-Host "  Target OU: Domain Controllers" -ForegroundColor Gray
             } else {
-                New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes -ErrorAction Stop
-                Write-Host "  Linked and enforced to $TargetOU" -ForegroundColor Green
+                $TargetOU = $WorkstationsOU
+                Write-Host "  Target OU: Workstations" -ForegroundColor Gray
             }
-        } catch {
-            Write-Host "  ERROR: Failed to link GPO to $TargetOU" -ForegroundColor Red
-            Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+            
+            # Import GPO
+            Import-GPO -BackupId $BackupId -TargetName $GPOName -Path $BackupPath -CreateIfNeeded
+            Write-Host "  GPO imported." -ForegroundColor Green
+            
+            # Link and enforce GPO with improved error handling
+            try {
+                $ExistingLink = Get-GPInheritance -Target $TargetOU | 
+                    Select-Object -ExpandProperty GpoLinks | 
+                    Where-Object { $_.DisplayName -eq $GPOName }
+                
+                if ($ExistingLink) {
+                    Write-Host "  GPO already linked to $TargetOU" -ForegroundColor Yellow
+                } else {
+                    New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled Yes -Enforced Yes -ErrorAction Stop
+                    Write-Host "  Linked and enforced to $TargetOU" -ForegroundColor Green
+                }
+            } catch {
+                Write-Host "  ERROR: Failed to link GPO to $TargetOU" -ForegroundColor Red
+                Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        } else {
+            Write-Warning "Skipping folder $($_.Name): Neither bkupInfo.xml nor Backup.xml found."
         }
     }
     
