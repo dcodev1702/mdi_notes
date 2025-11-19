@@ -13,6 +13,8 @@
       Detailed Tracking, Logon/Logoff, Object Access, Policy Change, Privilege Use, and System)
     - Generates audit policy CSV and deploys it to SYSVOL for GPO enforcement
     - Automatically increments GPO version to trigger policy refresh
+    - Creates startup script to clear legacy audit policies that can interfere with Advanced Audit Policy
+    - Sets SCENoApplyLegacyAuditPolicy registry key to enforce Advanced Audit Policy
     
     POWERSHELL LOGGING:
     - Enables PowerShell Script Block Logging for detailed script execution visibility
@@ -302,6 +304,53 @@ try {
     Write-Warning "Failed to configure advanced audit policy enforcement: $_"
 }
 
+# Create startup script to clear legacy audit policies
+Write-Host "`n[*] Creating startup script to clear legacy audit policies..." -ForegroundColor Yellow
+try {
+    # Create Scripts directory in GPO SYSVOL
+    $ScriptsPath = "\\$env:USERDNSDOMAIN\SYSVOL\$env:USERDNSDOMAIN\Policies\{$($GPO.Id)}\Machine\Scripts\Startup"
+    if (-not (Test-Path $ScriptsPath)) {
+        New-Item -Path $ScriptsPath -ItemType Directory -Force | Out-Null
+    }
+    
+    # Create the legacy audit policy cleanup script
+    $StartupScriptContent = @'
+@echo off
+REM Clear legacy audit policies that can override Advanced Audit Policy
+REM This ensures Advanced Audit Policy from GPO is properly applied
+
+auditpol /clear /y >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    gpupdate /target:computer /force /wait:0 >nul 2>&1
+)
+exit /b 0
+'@
+    
+    $StartupScriptPath = Join-Path $ScriptsPath "Clear-LegacyAuditPolicy.cmd"
+    $StartupScriptContent | Out-File -FilePath $StartupScriptPath -Encoding ASCII -Force
+    
+    # Configure GPO to run the startup script
+    $ScriptsIniPath = "\\$env:USERDNSDOMAIN\SYSVOL\$env:USERDNSDOMAIN\Policies\{$($GPO.Id)}\Machine\Scripts\scripts.ini"
+    
+    # Create scripts.ini content
+    $ScriptsIniContent = @"
+[Startup]
+0CmdLine=Clear-LegacyAuditPolicy.cmd
+0Parameters=
+"@
+    
+    $ScriptsIniContent | Out-File -FilePath $ScriptsIniPath -Encoding Unicode -Force
+    
+    # Update psscripts.ini for consistency
+    $PsScriptsIniPath = "\\$env:USERDNSDOMAIN\SYSVOL\$env:USERDNSDOMAIN\Policies\{$($GPO.Id)}\Machine\Scripts\psscripts.ini"
+    "[Startup]" | Out-File -FilePath $PsScriptsIniPath -Encoding Unicode -Force
+    
+    Write-Host "    Startup script created and configured." -ForegroundColor Green
+    Write-Host "    Script will clear legacy audit policies on every reboot." -ForegroundColor Gray
+} catch {
+    Write-Warning "Failed to create startup script: $_"
+}
+
 # Configure Process Creation to include command line
 Write-Host "`n[*] Configuring Process Creation command line logging..." -ForegroundColor Yellow
 try {
@@ -380,9 +429,12 @@ if ($TargetOU) {
 
 Write-Host "`nNext Steps:" -ForegroundColor White
 Write-Host "  1. Review the GPO settings in Group Policy Management Console" -ForegroundColor Gray
-Write-Host "  2. Run 'gpupdate /force' on target clients to apply immediately" -ForegroundColor Gray
-Write-Host "  3. Verify audit settings with: auditpol /get /category:*" -ForegroundColor Gray
-Write-Host "  4. Monitor Security event log size and adjust if needed (recommend 1GB+)" -ForegroundColor Gray
+Write-Host "  2. For EXISTING machines, manually clear legacy audit policies:" -ForegroundColor Gray
+Write-Host "     - Run: auditpol /clear /y" -ForegroundColor DarkGray
+Write-Host "     - Run: gpupdate /force" -ForegroundColor DarkGray
+Write-Host "  3. NEW machines will automatically clear legacy policies on startup" -ForegroundColor Gray
+Write-Host "  4. Verify audit settings with: auditpol /get /category:*" -ForegroundColor Gray
+Write-Host "  5. Monitor Security event log size and adjust if needed (recommend 1GB+)" -ForegroundColor Gray
 Write-Host "`n"
 
 # Optional: Generate report
