@@ -1102,8 +1102,9 @@ Get-GPInheritance -Target "OU=Domain Controllers,DC=contoso,DC=local"
 ```
 
 
-**Verify imported settings:**
-<img width="1147" height="580" alt="image" src="https://github.com/user-attachments/assets/26861104-a757-4ee7-b092-16ab4fc4ce5f" />
+**Verify imported GPOs & settings:**
+<img width="499" height="526" alt="image" src="https://github.com/user-attachments/assets/b71c79c0-5e38-40ff-85d5-2d580d881289" />
+
 
 
 ```powershell
