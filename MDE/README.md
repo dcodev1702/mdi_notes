@@ -1059,6 +1059,18 @@ Remove-Item -Path "$TempPath" -Recurse -Force
 gpupdate /force
 ```
 
+**Step 8:** REBOOT DC AND CLIENT VM's
+
+```powershell
+# Switch over to DC and restart the VM
+Restart-Computer
+```
+
+```powershell
+# Switch over to CLIENT01 and restart the VM
+Restart-Computer
+```
+
 ### What This Does:
 
 1. **Creates temp directory** - `$env:TEMP\MDE-GPO-Import`
