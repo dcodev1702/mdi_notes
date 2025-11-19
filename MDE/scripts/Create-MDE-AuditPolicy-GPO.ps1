@@ -176,12 +176,34 @@ Write-Host "`n[*] Generating audit policy configuration..." -ForegroundColor Yel
 # Build CSV content
 $CSVContent = "Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value`r`n"
 
+# Get all subcategory GUIDs at once for better performance
+Write-Host "[*] Retrieving audit subcategory GUIDs..." -ForegroundColor Yellow
+$allSubcats = auditpol /list /subcategory:* /r 2>$null | Select-Object -Skip 1
+
+# Build a hashtable for quick GUID lookup
+$guidLookup = @{}
+foreach ($line in $allSubcats) {
+    if ($line -and $line.Contains(',')) {
+        # Split by comma - format is: "  Subcategory Name,{GUID}"
+        $parts = $line -split ',', 2
+        if ($parts.Count -eq 2) {
+            $subcatName = $parts[0].Trim()
+            $subcatGuid = $parts[1].Trim()
+            
+            # Only add subcategories (lines that start with spaces), not category headers
+            if ($line -match '^\s{2,}') {
+                $guidLookup[$subcatName] = $subcatGuid
+            }
+        }
+    }
+}
+
+Write-Host "    Retrieved $($guidLookup.Count) subcategory GUIDs" -ForegroundColor Green
+
 foreach ($setting in $AuditSettings) {
-    # Get subcategory GUID
-    $subcatInfo = auditpol /list /subcategory:"$($setting.Subcategory)" /v 2>$null | Where-Object { $_ -match '\{[0-9A-F\-]+\}' }
-    
-    if ($subcatInfo -match '\{([0-9A-F\-]+)\}') {
-        $guid = "{$($matches[1])}"
+    # Look up GUID from hashtable
+    if ($guidLookup.ContainsKey($setting.Subcategory)) {
+        $guid = $guidLookup[$setting.Subcategory]
         
         # Calculate setting value
         # 0 = No Auditing, 1 = Success, 2 = Failure, 3 = Success and Failure
@@ -190,7 +212,24 @@ foreach ($setting in $AuditSettings) {
         elseif ($setting.Success -eq "enable") { $settingValue = 1 }
         elseif ($setting.Failure -eq "enable") { $settingValue = 2 }
         
-        $CSVContent += ",$($setting.Category),$($setting.Subcategory),$guid,,$settingValue`r`n"
+        # Generate CSV line with proper format - must have all 7 fields to match header
+        # Field 1: Machine Name (empty)
+        # Field 2: Policy Target (Category)  
+        # Field 3: Subcategory
+        # Field 4: Subcategory GUID
+        # Field 5: Inclusion Setting (empty)
+        # Field 6: Exclusion Setting (empty)
+        # Field 7: Setting Value
+        $csvLine = @(
+            "",                         # Machine Name
+            $setting.Category,          # Policy Target
+            $setting.Subcategory,       # Subcategory
+            $guid,                      # Subcategory GUID
+            "",                         # Inclusion Setting
+            "",                         # Exclusion Setting
+            $settingValue               # Setting Value
+        ) -join ','
+        $CSVContent += "$csvLine`r`n"
         
         Write-Host "    [+] $($setting.Subcategory): " -NoNewline -ForegroundColor Gray
         switch ($settingValue) {
@@ -199,11 +238,15 @@ foreach ($setting in $AuditSettings) {
             2 { Write-Host "Failure" -ForegroundColor Yellow }
             3 { Write-Host "Success and Failure" -ForegroundColor Cyan }
         }
+    } else {
+        Write-Warning "Could not find GUID for subcategory: $($setting.Subcategory)"
+        Write-Host "    Available subcategories:" -ForegroundColor Yellow
+        $guidLookup.Keys | Sort-Object | ForEach-Object { Write-Host "      - $_" -ForegroundColor Gray }
     }
 }
 
-# Save CSV
-$CSVContent | Out-File -FilePath $AuditCSVPath -Encoding ASCII -Force
+# Save CSV - Write directly to file to ensure proper formatting
+[System.IO.File]::WriteAllText($AuditCSVPath, $CSVContent, [System.Text.Encoding]::ASCII)
 
 # Get GPO path
 $GPOPath = "\\$env:USERDNSDOMAIN\SYSVOL\$env:USERDNSDOMAIN\Policies\{$($GPO.Id)}\Machine\Microsoft\Windows NT\Audit"
@@ -250,6 +293,15 @@ try {
     Write-Warning "Failed to configure PowerShell logging: $_"
 }
 
+# CRITICAL: Force advanced audit policy to override legacy audit policy
+Write-Host "`n[*] Forcing advanced audit policy to override legacy settings..." -ForegroundColor Yellow
+try {
+    Set-GPRegistryValue -Name $GPOName -Key "HKLM\System\CurrentControlSet\Control\Lsa" -ValueName "SCENoApplyLegacyAuditPolicy" -Type DWord -Value 1 | Out-Null
+    Write-Host "    Advanced audit policy enforcement enabled." -ForegroundColor Green
+} catch {
+    Write-Warning "Failed to configure advanced audit policy enforcement: $_"
+}
+
 # Configure Process Creation to include command line
 Write-Host "`n[*] Configuring Process Creation command line logging..." -ForegroundColor Yellow
 try {
@@ -282,8 +334,20 @@ try {
 if ($TargetOU) {
     Write-Host "`n[*] Linking GPO to OU: $TargetOU" -ForegroundColor Yellow
     try {
-        $link = New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled $(if ($LinkEnabled) { "Yes" } else { "No" }) -Enforced "Yes" -ErrorAction Stop
-        Write-Host "    GPO linked successfully (Enforced: Yes)." -ForegroundColor Green
+        # Check if link already exists
+        $existingLink = Get-GPInheritance -Target $TargetOU | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GPOName }
+        
+        if ($existingLink) {
+            Write-Host "    GPO link already exists." -ForegroundColor Yellow
+            # Update link properties if needed
+            Set-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled $(if ($LinkEnabled) { "Yes" } else { "No" }) -Enforced "Yes" -ErrorAction Stop | Out-Null
+            Write-Host "    GPO link updated (Enforced: Yes, Enabled: $LinkEnabled)." -ForegroundColor Green
+        } else {
+            # Create new link
+            $link = New-GPLink -Name $GPOName -Target $TargetOU -LinkEnabled $(if ($LinkEnabled) { "Yes" } else { "No" }) -Enforced "Yes" -ErrorAction Stop
+            Write-Host "    GPO linked successfully (Enforced: Yes)." -ForegroundColor Green
+        }
+        
         if (-not $LinkEnabled) {
             Write-Host "    (Link is currently disabled)" -ForegroundColor Yellow
         }
