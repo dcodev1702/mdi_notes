@@ -1448,6 +1448,723 @@ Get-WinEvent -LogName "Microsoft-Windows-Windows Defender/Operational" | Where-O
 
 ---
 
+<details>
+<summary><b>🔐 MDE Exploit Protection Configuration & Monitoring</b></summary>
+
+<br>
+
+The **Exploit Protection GPO** (`Exploit Protections Policy - Workstations`) enables comprehensive exploit mitigation techniques in Audit mode, providing visibility into exploitation attempts without disrupting legitimate applications. This configuration protects against memory corruption, code injection, and Return-Oriented Programming (ROP) attacks.
+
+---
+
+### 🎯 What is Exploit Protection?
+
+Exploit Protection is a set of mitigations that help protect your devices from malware that uses exploits to spread and infect. It provides:
+
+- **System-wide mitigations** - Applied to all processes
+- **Application-specific mitigations** - Targeted protections for high-risk applications (Office, browsers, Adobe, Java)
+- **Hardware-based security** - Leverages CPU features like Control Flow Guard (CFG) and Intel CET
+
+**Key Benefits:**
+- Protection against zero-day exploits
+- Reduces attack surface for common exploitation techniques
+- Audit mode allows evaluation without disruption
+- Granular control per application
+
+---
+
+### ✅ What's Now Being Audited (System-Wide)
+
+The Enhanced Exploit Protection configuration enables the following protections in **Audit Mode**:
+
+- ✅ **SEHOP** - Exception handler exploits  
+- ✅ **Dynamic Code** - DLL injection, shellcode  
+- ✅ **Binary Signature** - Unsigned DLL loading  
+- ✅ **Font Disable** - Malicious font loading  
+- ✅ **Image Load** - Remote/low-integrity images  
+- ✅ **System Call** - Win32k/Fsctl restrictions  
+- ✅ **Child Process** - Unauthorized process spawning  
+- ✅ **User Shadow Stack** - Hardware CFI (CET)  
+- ✅ **Payload (ROP)** - Memory corruption attacks  
+
+**Plus** application-specific protections for: Office, browsers (Chrome, Firefox, Edge, IE), Adobe Reader, PowerShell, Command Prompt, Windows Script Host, and Java.
+
+---
+
+### 🛡️ Exploit Protections Configured (System-Wide Audit Mode)
+
+<details>
+<summary><b>1. SEHOP (Structured Exception Handler Overwrite Protection)</b></summary>
+
+**Purpose:** Detects attempts to exploit SEH (Structured Exception Handler) chains
+
+**Attack Vector Blocked:** 
+- Exploits that overwrite exception handlers to redirect execution flow
+- Common in buffer overflow attacks
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/KernelMode`
+- Event ID: 1 (Audit), 2 (Block when enforced)
+
+**Typical Triggers:**
+- Memory corruption exploits
+- Buffer overflow attempts
+- Heap spray attacks
+
+</details>
+
+<details>
+<summary><b>2. Dynamic Code (Code Injection Protection)</b></summary>
+
+**Purpose:** Detects unsigned dynamic code execution (DLL injection, shellcode)
+
+**Attack Vector Blocked:**
+- Process injection (CreateRemoteThread, QueueUserAPC)
+- Reflective DLL injection
+- Shellcode execution in memory
+- Code caves
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event ID: 12
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Debuggers (Visual Studio, WinDbg), Antivirus engines, .NET JIT compilation
+- ❌ **Malicious:** Malware injectors, exploit kits, fileless malware
+
+</details>
+
+<details>
+<summary><b>3. Binary Signature (Unsigned DLL Loading)</b></summary>
+
+**Purpose:** Detects loading of unsigned or untrusted binaries
+
+**Attack Vector Blocked:**
+- Loading unsigned/untrusted DLLs
+- DLL hijacking
+- Side-loading malicious libraries
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event ID: 8
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Third-party software, in-house developed tools, legacy applications
+- ❌ **Malicious:** Unsigned malware, trojanized DLLs
+
+</details>
+
+<details>
+<summary><b>4. Font Disable (Untrusted Font Loading)</b></summary>
+
+**Purpose:** Detects attempts to load non-system fonts (common attack vector)
+
+**Attack Vector Blocked:**
+- Malicious font parsing exploits
+- Embedded font exploits in documents
+- Font-based code execution
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event ID: 14
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Custom fonts in documents (PowerPoint, Word)
+- ❌ **Malicious:** Font-based exploits (CVE-2015-2426, CVE-2016-3393)
+
+</details>
+
+<details>
+<summary><b>5. Image Load (Remote/Low-Integrity Image Protection)</b></summary>
+
+**Purpose:** Detects loading of remote images or low-integrity images
+
+**Attack Vector Blocked:**
+- Loading DLLs from network shares
+- Loading DLLs from temp/download folders
+- Low-integrity process image loads
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event IDs: 5 (Remote), 6 (Low Label), 7 (PreferSystem32)
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Network-mapped drives, shared libraries
+- ❌ **Malicious:** SMB-based DLL hijacking, downloaded malware
+
+</details>
+
+<details>
+<summary><b>6. System Call (Win32k/Fsctl Restrictions)</b></summary>
+
+**Purpose:** Blocks system calls that bypass security boundaries
+
+**Attack Vector Blocked:**
+- Win32k.sys kernel exploitation
+- File system control operations abuse
+- Kernel-mode escalation attempts
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event IDs: 3 (Win32k), 33 (Fsctl)
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Legacy GUI applications
+- ❌ **Malicious:** Kernel exploits, privilege escalation attempts
+
+</details>
+
+<details>
+<summary><b>7. Child Process (Process Creation Restrictions)</b></summary>
+
+**Purpose:** Detects unauthorized child process creation
+
+**Attack Vector Blocked:**
+- Office macros spawning executables
+- Script-based process execution
+- Living-off-the-land techniques
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event ID: 10
+
+**Typical Triggers:**
+- ✅ **Legitimate:** Office macros (legitimate automation), PowerShell scripts, build systems
+- ❌ **Malicious:** Macro-based malware, document exploits, lateral movement
+
+</details>
+
+<details>
+<summary><b>8. User Shadow Stack (Hardware Control Flow Integrity - CET)</b></summary>
+
+**Purpose:** Hardware-enforced control flow integrity using Intel CET (Control-flow Enforcement Technology)
+
+**Attack Vector Blocked:**
+- Return-Oriented Programming (ROP)
+- Control flow hijacking
+- Return address manipulation
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event ID: 35
+
+**Requirements:**
+- Intel 11th gen (Tiger Lake) or newer
+- AMD Zen 3 or newer
+- Windows 11 or Windows Server 2022+
+
+**Typical Triggers:**
+- ❌ **Malicious:** ROP exploits, advanced memory corruption attacks
+
+</details>
+
+<details>
+<summary><b>9. Payload Protections (ROP & Memory Exploitation Mitigations)</b></summary>
+
+**Purpose:** Detects Return-Oriented Programming and memory corruption techniques
+
+**Protections Enabled:**
+- **Export Address Filter (EAF)** - Blocks ROP gadgets from exported functions
+- **Export Address Filter Plus (EAF+)** - Enhanced EAF with additional modules
+- **Import Address Filter (IAF)** - Protects Import Address Table (IAT)
+- **ROP Stack Pivot** - Detects stack pointer manipulation
+- **ROP Caller Check** - Validates return addresses
+- **ROP Sim Exec** - Simulates execution to detect ROP chains
+
+**Audit Mode Events:**
+- Event Log: `Microsoft-Windows-Security-Mitigations/UserMode`
+- Event IDs: 16 (EAF), 17 (EAF+), 18 (IAF), 19 (Stack Pivot), 20 (Caller Check), 21 (Sim Exec)
+
+**Attack Vectors Blocked:**
+- Return-Oriented Programming (ROP)
+- Jump-Oriented Programming (JOP)
+- Counterfeit Object-Oriented Programming (COOP)
+- Memory corruption exploits
+
+**Typical Triggers:**
+- ❌ **Malicious:** Exploit kits, advanced malware, targeted attacks
+
+</details>
+
+---
+
+### 📊 Monitoring Exploit Protection Events
+
+<details>
+<summary><b>PowerShell Monitoring Commands</b></summary>
+
+<br>
+
+**View All Exploit Protection Events (Last 24 Hours):**
+
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-Security-Mitigations/UserMode" -MaxEvents 100 | 
+    Where-Object {$_.TimeCreated -gt (Get-Date).AddDays(-1)} | 
+    Select-Object TimeCreated, Id, Message | 
+    Format-Table -AutoSize
+```
+
+**View Specific Protection Type:**
+
+```powershell
+# Dynamic Code (Event ID 12)
+Get-WinEvent -FilterHashtable @{
+    LogName='Microsoft-Windows-Security-Mitigations/UserMode'
+    ID=12
+} -MaxEvents 50 | Format-List TimeCreated, Message
+
+# Child Process (Event ID 10)
+Get-WinEvent -FilterHashtable @{
+    LogName='Microsoft-Windows-Security-Mitigations/UserMode'
+    ID=10
+} -MaxEvents 50 | Format-List TimeCreated, Message
+
+# Binary Signature (Event ID 8)
+Get-WinEvent -FilterHashtable @{
+    LogName='Microsoft-Windows-Security-Mitigations/UserMode'
+    ID=8
+} -MaxEvents 50 | Format-List TimeCreated, Message
+```
+
+**Export Last 7 Days to CSV:**
+
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-Security-Mitigations/UserMode" -MaxEvents 10000 |
+    Where-Object {$_.TimeCreated -gt (Get-Date).AddDays(-7)} |
+    Select-Object TimeCreated, Id, LevelDisplayName, Message |
+    Export-Csv -Path "C:\Temp\ExploitProtection-Audit-7days.csv" -NoTypeInformation
+```
+
+**Count Events by Type:**
+
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-Security-Mitigations/UserMode" -MaxEvents 1000 |
+    Where-Object {$_.TimeCreated -gt (Get-Date).AddDays(-7)} |
+    Group-Object Id |
+    Select-Object Count, Name |
+    Sort-Object Count -Descending
+```
+
+</details>
+
+<details>
+<summary><b>Event Log Configuration</b></summary>
+
+<br>
+
+**View Current Log Configuration:**
+
+```powershell
+wevtutil gl Microsoft-Windows-Security-Mitigations/UserMode
+```
+
+**Increase Log Size to 100 MB (Optional):**
+
+```powershell
+wevtutil sl Microsoft-Windows-Security-Mitigations/UserMode /ms:104857600
+```
+
+**Enable the Log:**
+
+```powershell
+wevtutil set-log Microsoft-Windows-Security-Mitigations/UserMode /e:true
+```
+
+**Why Increase Log Size?**
+- Default size may be insufficient for comprehensive audit data
+- 100MB provides ~30 days of retention in typical environments
+- Prevents event loss during baseline period
+
+</details>
+
+<details>
+<summary><b>Verification Commands</b></summary>
+
+<br>
+
+**Check System-Wide Exploit Protection Settings:**
+
+```powershell
+Get-ProcessMitigation -System
+```
+
+**Check Application-Specific Settings:**
+
+```powershell
+# Microsoft Word
+Get-ProcessMitigation -Name winword.exe
+
+# PowerShell
+Get-ProcessMitigation -Name powershell.exe
+
+# Chrome
+Get-ProcessMitigation -Name chrome.exe
+
+# Internet Explorer
+Get-ProcessMitigation -Name iexplore.exe
+```
+
+**Verify XML File Path in Registry:**
+
+```powershell
+Get-ItemProperty "HKLM:\Software\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\Exploit Protection" -Name ExploitProtectionSettings
+```
+
+**Test XML File Accessibility:**
+
+```powershell
+# From Domain Controller (as System)
+Test-Path "\\DC\GPO-Configs\ExploitProtectionLite.xml"
+
+# From Client (as SYSTEM - should succeed)
+psexec -s cmd /c "dir \\DC\GPO-Configs\ExploitProtectionLite.xml"
+```
+
+</details>
+
+---
+
+### 📋 Event ID Reference Guide
+
+| Event ID | Protection Type | Severity | Description |
+|----------|----------------|----------|-------------|
+| 1 | SEHOP | Medium | Structured exception handler violation |
+| 3 | System Call (Win32k) | High | Restricted Win32k system call attempt |
+| 5 | Remote Image Load | Medium | DLL loaded from remote location |
+| 6 | Low Label Image Load | Medium | DLL loaded from low-integrity location |
+| 7 | PreferSystem32 | Low | Non-System32 DLL loaded |
+| 8 | Binary Signature | Medium | Unsigned/untrusted binary loaded |
+| 10 | Child Process | High | Unauthorized child process creation |
+| 12 | Dynamic Code | High | Dynamic code injection detected |
+| 14 | Font Disable | Medium | Non-system font loading attempt |
+| 16 | Export Address Filter | High | EAF ROP mitigation triggered |
+| 17 | EAF Plus | High | EAF+ ROP mitigation triggered |
+| 18 | Import Address Filter | High | IAF ROP mitigation triggered |
+| 19 | ROP Stack Pivot | **Critical** | Stack pivot attack detected |
+| 20 | ROP Caller Check | **Critical** | Invalid return address detected |
+| 21 | ROP Sim Exec | **Critical** | ROP chain simulation detected |
+| 33 | System Call (Fsctl) | High | Restricted Fsctl system call attempt |
+| 35 | User Shadow Stack | **Critical** | Hardware CET violation (ROP attempt) |
+
+---
+
+### 🎯 Protected Applications
+
+The Enhanced Exploit Protection configuration includes audit mode for:
+
+**Browsers:**
+- Internet Explorer (iexplore.exe)
+- Microsoft Edge Legacy (MicrosoftEdge.exe)
+- Microsoft Edge Chromium (msedge.exe)
+- Google Chrome (chrome.exe)
+- Mozilla Firefox (firefox.exe)
+
+**Microsoft Office:**
+- Outlook (outlook.exe)
+- Word (winword.exe)
+- Excel (excel.exe)
+- PowerPoint (powerpnt.exe)
+
+**Adobe Products:**
+- Acrobat Reader (AcroRd32.exe, Acrobat.exe)
+
+**Windows Components:**
+- WordPad (wordpad.exe)
+- Notepad (notepad.exe)
+- PowerShell (powershell.exe, pwsh.exe)
+- Command Prompt (cmd.exe)
+- Windows Script Host (wscript.exe, cscript.exe)
+- Runtime Broker (RuntimeBroker.exe)
+- Windows Search (SearchIndexer.exe)
+
+**Java:**
+- Java Runtime (java.exe, javaw.exe, javaws.exe)
+
+---
+
+### ⚠️ Common False Positives & Troubleshooting
+
+<details>
+<summary><b>Dynamic Code (Event ID 12)</b></summary>
+
+**Common Legitimate Triggers:**
+- Visual Studio Debugger (devenv.exe)
+- WinDbg debugger
+- Antivirus engines
+- .NET applications using JIT compilation
+- Python interpreters
+
+**Resolution:**
+- Review audit events to identify legitimate applications
+- After 30-day baseline, add application-specific exceptions
+- For development machines, consider excluding debuggers
+
+</details>
+
+<details>
+<summary><b>Binary Signature (Event ID 8)</b></summary>
+
+**Common Legitimate Triggers:**
+- In-house developed applications
+- Legacy third-party software
+- Portable applications (non-installed)
+
+**Resolution:**
+- Document unsigned applications in your environment
+- Consider code-signing internal applications
+- Create exceptions for validated unsigned tools
+
+</details>
+
+<details>
+<summary><b>Child Process (Event ID 10)</b></summary>
+
+**Common Legitimate Triggers:**
+- Office macros (legitimate business automation)
+- PowerShell scripts launching processes
+- Build systems (MSBuild, Maven, Gradle)
+- Administrative scripts
+
+**Resolution:**
+- Review business processes using Office macros
+- Document legitimate automation workflows
+- Consider alternatives to macro-based automation
+
+</details>
+
+<details>
+<summary><b>Image Load (Event IDs 5, 6, 7)</b></summary>
+
+**Common Legitimate Triggers:**
+- Applications on network shares
+- DLLs from mapped drives
+- Portable applications
+
+**Resolution:**
+- Migrate critical applications to local installation
+- Document necessary network dependencies
+- Use PreferSystem32 to prefer local system DLLs
+
+</details>
+
+---
+
+### 🚀 Transition to Block Mode (After 30+ Day Audit Period)
+
+<details>
+<summary><b>Step-by-Step Enforcement Process</b></summary>
+
+<br>
+
+**Phase 1: Low-Risk Protections (Week 1-2)**
+
+Enable the following protections first as they have minimal false positive rate:
+
+1. **SEHOP** - Rarely causes false positives
+2. **Font Disable** - Modern applications use system fonts
+
+**XML Changes:**
+```xml
+<!-- Change from Audit to Enable -->
+<SystemConfig>
+    <SEHOP Enable="true" />
+    <FontDisable Enable="true" />
+</SystemConfig>
+```
+
+---
+
+**Phase 2: Medium-Risk Protections (Week 3-4)**
+
+Enable protections with moderate false positive potential:
+
+1. **Binary Signature** - After documenting legitimate unsigned apps
+2. **Image Load** - After reviewing network dependencies
+
+**XML Changes:**
+```xml
+<SystemConfig>
+    <BinarySignature 
+        MicrosoftSignedOnly="true" 
+        AllowStoreSignedBinaries="true"
+        EnforceModuleDependencySigning="true" 
+    />
+    <ImageLoad 
+        BlockRemoteImageLoads="true" 
+        BlockLowLabelImageLoads="true"
+    />
+</SystemConfig>
+```
+
+---
+
+**Phase 3: High-Risk Protections (Week 5-6)**
+
+Enable protections requiring careful validation:
+
+1. **Dynamic Code** - With application-specific exceptions
+2. **Child Process** - With documented business process exceptions
+
+**XML Changes:**
+```xml
+<SystemConfig>
+    <DynamicCode Enable="true" />
+    <ChildProcess Enable="true" />
+</SystemConfig>
+```
+
+**Application Exceptions Example:**
+```xml
+<!-- Allow Visual Studio debugger to use dynamic code -->
+<AppConfig Executable="devenv.exe">
+    <DynamicCode Enable="false" />
+</AppConfig>
+```
+
+---
+
+**Phase 4: Payload Protections (Week 7+)**
+
+Enable advanced ROP mitigations:
+
+**XML Changes:**
+```xml
+<SystemConfig>
+    <Payload 
+        EnableExportAddressFilter="true"
+        EnableExportAddressFilterPlus="true"
+        EnableImportAddressFilter="true"
+        EnableRopStackPivot="true"
+        EnableRopCallerCheck="true"
+        EnableRopSimExec="true"
+    />
+</SystemConfig>
+```
+
+---
+
+**Rollback Plan:**
+
+If issues occur after enforcement:
+
+```powershell
+# Immediately revert to audit mode
+# Option 1: Via GPO - Change XML back to Audit="true"
+# Option 2: Via PowerShell (temporary)
+Set-ProcessMitigation -System -Disable DynamicCode
+Set-ProcessMitigation -System -Disable ChildProcess
+```
+
+</details>
+
+---
+
+### 🔗 Integration with SIEM/Sentinel
+
+<details>
+<summary><b>Azure Sentinel Configuration</b></summary>
+
+<br>
+
+**Add Data Collection Rule for Exploit Protection Events:**
+
+1. Navigate to **Azure Portal → Log Analytics Workspace**
+2. Select **Data Collection Rules**
+3. Add Windows Event Logs:
+   - `Microsoft-Windows-Security-Mitigations/UserMode`
+   - `Microsoft-Windows-Security-Mitigations/KernelMode`
+
+**KQL Query Examples:**
+
+**All Exploit Protection Events (Last 7 Days):**
+```kql
+Event
+| where EventLog == "Microsoft-Windows-Security-Mitigations/UserMode"
+| where TimeGenerated > ago(7d)
+| summarize count() by EventID, Computer
+| order by count_ desc
+```
+
+**Critical ROP Protection Events:**
+```kql
+Event
+| where EventLog == "Microsoft-Windows-Security-Mitigations/UserMode"
+| where EventID in (19, 20, 21, 35)  // ROP + Shadow Stack
+| project TimeGenerated, Computer, EventID, RenderedDescription
+| order by TimeGenerated desc
+```
+
+**Top Applications Triggering Protections:**
+```kql
+Event
+| where EventLog == "Microsoft-Windows-Security-Mitigations/UserMode"
+| extend ProcessName = extract(@"Process Name:\s+(.+?)\\r\\n", 1, RenderedDescription)
+| where isnotempty(ProcessName)
+| summarize count() by ProcessName, EventID
+| order by count_ desc
+| take 20
+```
+
+**Dynamic Code Injection Attempts:**
+```kql
+Event
+| where EventLog == "Microsoft-Windows-Security-Mitigations/UserMode"
+| where EventID == 12  // Dynamic Code
+| project TimeGenerated, Computer, RenderedDescription
+| order by TimeGenerated desc
+```
+
+</details>
+
+---
+
+### 📚 Additional Resources
+
+**Microsoft Documentation:**
+- [Exploit Protection Overview](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/enable-exploit-protection)
+- [Exploit Protection Reference](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/exploit-protection-reference)
+- [Customize Exploit Protection](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/customize-exploit-protection)
+- [Import/Export Exploit Protection Configuration](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/import-export-exploit-protection-emet-xml)
+
+**Security Research:**
+- [Understanding ROP Attacks](https://blog.talosintelligence.com/2023/05/understanding-return-oriented-programming.html)
+- [Intel CET Deep Dive](https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html)
+- [Exploit Mitigation Techniques](https://docs.microsoft.com/en-us/windows/security/threat-protection/overview-of-threat-mitigations-in-windows-10)
+
+---
+
+### ⚠️ Important Deployment Notes
+
+> **🔴 XML File Format Requirements**  
+> - Use plain `<MitigationPolicy>` XML format for GPO deployment
+> - Do NOT use Intune/MDM SyncML-wrapped format
+> - Verify file is accessible by Domain Computers via UNC path
+> - Test XML syntax before deployment using `Get-ProcessMitigation -Name test.exe -File path\to\config.xml`
+
+> **💡 Hardware Requirements for CET (Shadow Stack)**  
+> - Intel 11th Gen (Tiger Lake) or newer processors
+> - AMD Zen 3 or newer processors
+> - Windows 11 or Windows Server 2022+
+> - UEFI firmware with CET support enabled
+
+> **⚙️ Service Restart Required**  
+> After XML configuration changes:
+> ```powershell
+> Restart-Service -Name WinDefend -Force
+> ```
+
+> **📊 Expected Audit Volume**  
+> - Low activity: ~10-50 events/day
+> - Medium activity: ~50-200 events/day  
+> - High activity (dev environments): ~200-1000+ events/day
+> - Increase log size accordingly
+
+---
+
+</details>
+
+---
+
 ## 📚 Reference Links
 
 ### Official Documentation
