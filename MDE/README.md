@@ -1099,7 +1099,7 @@ auditpol /get /category:*
 Get-MpPreference | Select-Object AttackSurfaceReductionRules_*
 
 # Check Exploit Protection
-Get-ProcessMitigation -RegistryConfigFilePath
+Get-ProcessMitigation -System
 ```
 
 
