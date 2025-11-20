@@ -689,7 +689,7 @@ Write-Host "Added SamiraA to Domain Admins" -ForegroundColor Green
 New-ADGroup -Name "HelpDesk" `
     -GroupScope Global `
     -GroupCategory Security `
-    -Path "OU=Users,$domainDN" `
+    -Path "CN=Users,$domainDN" `
     -Description "Help Desk support staff"
 
 # Add RonHD to HelpDesk group
