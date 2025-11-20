@@ -85,8 +85,8 @@ Get-ADDomainController -Filter * | Select-Object Name, OperatingSystem, IPv4Addr
 Get-ADComputer -Filter {OperatingSystem -like "*Windows 11*"} | Select-Object Name, DNSHostName
 
 # Test connectivity to Microsoft Defender for Identity service
-Test-NetConnection -ComputerName sensorapi.atp.azure.com -Port 443
-Test-NetConnection -ComputerName triprd1wceuw1sensorapi.atp.azure.com -Port 443
+Test-NetConnection -ComputerName m365x95687772sensorapi.atp.azure.com -Port 443
+
 ```
 
 **Expected Output**:
