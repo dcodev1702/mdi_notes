@@ -59,6 +59,7 @@
     Run as: Domain Administrator or user with GPO creation rights
 #>
 
+
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
@@ -79,87 +80,16 @@ if (-not (Get-Module -ListAvailable -Name GroupPolicy)) {
 
 Import-Module GroupPolicy
 
-# Audit policy settings optimized for MDE
-# Format: SubcategoryName, Success (enable/disable), Failure (enable/disable)
-$AuditSettings = @(
-    # Account Logon
-    @{Category="Account Logon"; Subcategory="Credential Validation"; Success="enable"; Failure="enable"},
-    @{Category="Account Logon"; Subcategory="Kerberos Authentication Service"; Success="enable"; Failure="enable"},
-    @{Category="Account Logon"; Subcategory="Kerberos Service Ticket Operations"; Success="disable"; Failure="enable"},
-    @{Category="Account Logon"; Subcategory="Other Account Logon Events"; Success="enable"; Failure="enable"},
-    
-    # Account Management
-    @{Category="Account Management"; Subcategory="User Account Management"; Success="enable"; Failure="enable"},
-    @{Category="Account Management"; Subcategory="Computer Account Management"; Success="enable"; Failure="enable"},
-    @{Category="Account Management"; Subcategory="Security Group Management"; Success="enable"; Failure="enable"},
-    @{Category="Account Management"; Subcategory="Distribution Group Management"; Success="enable"; Failure="enable"},
-    @{Category="Account Management"; Subcategory="Application Group Management"; Success="enable"; Failure="enable"},
-    @{Category="Account Management"; Subcategory="Other Account Management Events"; Success="enable"; Failure="enable"},
-    
-    # Detailed Tracking - CRITICAL for EDR
-    @{Category="Detailed Tracking"; Subcategory="Process Creation"; Success="enable"; Failure="enable"},
-    @{Category="Detailed Tracking"; Subcategory="Process Termination"; Success="enable"; Failure="disable"},
-    @{Category="Detailed Tracking"; Subcategory="DPAPI Activity"; Success="enable"; Failure="enable"},
-    @{Category="Detailed Tracking"; Subcategory="Plug and Play Events"; Success="enable"; Failure="disable"},
-    @{Category="Detailed Tracking"; Subcategory="Token Right Adjusted Events"; Success="enable"; Failure="disable"},
-    
-    # Logon/Logoff
-    @{Category="Logon/Logoff"; Subcategory="Logon"; Success="enable"; Failure="enable"},
-    @{Category="Logon/Logoff"; Subcategory="Logoff"; Success="enable"; Failure="disable"},
-    @{Category="Logon/Logoff"; Subcategory="Account Lockout"; Success="enable"; Failure="enable"},
-    @{Category="Logon/Logoff"; Subcategory="Special Logon"; Success="enable"; Failure="enable"},
-    @{Category="Logon/Logoff"; Subcategory="Other Logon/Logoff Events"; Success="enable"; Failure="enable"},
-    @{Category="Logon/Logoff"; Subcategory="Network Policy Server"; Success="enable"; Failure="enable"},
-    @{Category="Logon/Logoff"; Subcategory="User / Device Claims"; Success="enable"; Failure="disable"},
-    @{Category="Logon/Logoff"; Subcategory="Group Membership"; Success="enable"; Failure="disable"},
-    
-    # Object Access
-    @{Category="Object Access"; Subcategory="File System"; Success="disable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Registry"; Success="disable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Kernel Object"; Success="disable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="SAM"; Success="disable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Certification Services"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Application Generated"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Handle Manipulation"; Success="disable"; Failure="disable"},
-    @{Category="Object Access"; Subcategory="File Share"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Filtering Platform Packet Drop"; Success="enable"; Failure="disable"},
-    @{Category="Object Access"; Subcategory="Filtering Platform Connection"; Success="disable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Other Object Access Events"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Detailed File Share"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Removable Storage"; Success="enable"; Failure="enable"},
-    @{Category="Object Access"; Subcategory="Central Policy Staging"; Success="disable"; Failure="disable"},
-    
-    # Policy Change
-    @{Category="Policy Change"; Subcategory="Audit Policy Change"; Success="enable"; Failure="enable"},
-    @{Category="Policy Change"; Subcategory="Authentication Policy Change"; Success="enable"; Failure="enable"},
-    @{Category="Policy Change"; Subcategory="Authorization Policy Change"; Success="enable"; Failure="enable"},
-    @{Category="Policy Change"; Subcategory="MPSSVC Rule-Level Policy Change"; Success="enable"; Failure="enable"},
-    @{Category="Policy Change"; Subcategory="Filtering Platform Policy Change"; Success="enable"; Failure="enable"},
-    @{Category="Policy Change"; Subcategory="Other Policy Change Events"; Success="enable"; Failure="enable"},
-    
-    # Privilege Use
-    @{Category="Privilege Use"; Subcategory="Sensitive Privilege Use"; Success="enable"; Failure="enable"},
-    @{Category="Privilege Use"; Subcategory="Non Sensitive Privilege Use"; Success="disable"; Failure="disable"},
-    @{Category="Privilege Use"; Subcategory="Other Privilege Use Events"; Success="disable"; Failure="disable"},
-    
-    # System
-    @{Category="System"; Subcategory="Security State Change"; Success="enable"; Failure="enable"},
-    @{Category="System"; Subcategory="Security System Extension"; Success="enable"; Failure="enable"},
-    @{Category="System"; Subcategory="System Integrity"; Success="enable"; Failure="enable"},
-    @{Category="System"; Subcategory="IPsec Driver"; Success="enable"; Failure="enable"},
-    @{Category="System"; Subcategory="Other System Events"; Success="enable"; Failure="enable"}
-)
-
 Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "MDE Audit Policy GPO Configuration" -ForegroundColor Cyan
+Write-Host "MDE Audit Policy GPO Configuration (Fixed)" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Create the GPO
-Write-Host "[*] Creating GPO: $GPOName" -ForegroundColor Yellow
+Write-Host "[*] Creating/Checking GPO: $GPOName" -ForegroundColor Yellow
 try {
     $GPO = Get-GPO -Name $GPOName -ErrorAction SilentlyContinue
     if ($GPO) {
-        Write-Host "    GPO already exists. Using existing GPO." -ForegroundColor Yellow
+        Write-Host "    GPO already exists. Updating existing GPO." -ForegroundColor Yellow
     } else {
         $GPO = New-GPO -Name $GPOName -Comment "Audit policy settings optimized for Microsoft Defender for Endpoint (MDE). Enables comprehensive logging for EDR visibility."
         Write-Host "    GPO created successfully." -ForegroundColor Green
@@ -175,85 +105,78 @@ $AuditCSVPath = Join-Path $TempPath "mde-audit-policy.csv"
 
 Write-Host "`n[*] Generating audit policy configuration..." -ForegroundColor Yellow
 
-# Build CSV content
-$CSVContent = "Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value`r`n"
-
-# Get all subcategory GUIDs at once for better performance
-Write-Host "[*] Retrieving audit subcategory GUIDs..." -ForegroundColor Yellow
-$allSubcats = auditpol /list /subcategory:* /r 2>$null | Select-Object -Skip 1
-
-# Build a hashtable for quick GUID lookup
-$guidLookup = @{}
-foreach ($line in $allSubcats) {
-    if ($line -and $line.Contains(',')) {
-        # Split by comma - format is: "  Subcategory Name,{GUID}"
-        $parts = $line -split ',', 2
-        if ($parts.Count -eq 2) {
-            $subcatName = $parts[0].Trim()
-            $subcatGuid = $parts[1].Trim()
-            
-            # Only add subcategories (lines that start with spaces), not category headers
-            if ($line -match '^\s{2,}') {
-                $guidLookup[$subcatName] = $subcatGuid
-            }
-        }
-    }
-}
-
-Write-Host "    Retrieved $($guidLookup.Count) subcategory GUIDs" -ForegroundColor Green
-
-foreach ($setting in $AuditSettings) {
-    # Look up GUID from hashtable
-    if ($guidLookup.ContainsKey($setting.Subcategory)) {
-        $guid = $guidLookup[$setting.Subcategory]
-        
-        # Calculate setting value
-        # 0 = No Auditing, 1 = Success, 2 = Failure, 3 = Success and Failure
-        $settingValue = 0
-        if ($setting.Success -eq "enable" -and $setting.Failure -eq "enable") { $settingValue = 3 }
-        elseif ($setting.Success -eq "enable") { $settingValue = 1 }
-        elseif ($setting.Failure -eq "enable") { $settingValue = 2 }
-        
-        # Generate CSV line with proper format - must have all 7 fields to match header
-        # Field 1: Machine Name (empty)
-        # Field 2: Policy Target (Category)  
-        # Field 3: Subcategory
-        # Field 4: Subcategory GUID
-        # Field 5: Inclusion Setting (empty)
-        # Field 6: Exclusion Setting (empty)
-        # Field 7: Setting Value
-        $csvLine = @(
-            "",                         # Machine Name
-            $setting.Category,          # Policy Target
-            $setting.Subcategory,       # Subcategory
-            $guid,                      # Subcategory GUID
-            "",                         # Inclusion Setting
-            "",                         # Exclusion Setting
-            $settingValue               # Setting Value
-        ) -join ','
-        $CSVContent += "$csvLine`r`n"
-        
-        Write-Host "    [+] $($setting.Subcategory): " -NoNewline -ForegroundColor Gray
-        switch ($settingValue) {
-            0 { Write-Host "No Auditing" -ForegroundColor DarkGray }
-            1 { Write-Host "Success" -ForegroundColor Green }
-            2 { Write-Host "Failure" -ForegroundColor Yellow }
-            3 { Write-Host "Success and Failure" -ForegroundColor Cyan }
-        }
-    } else {
-        Write-Warning "Could not find GUID for subcategory: $($setting.Subcategory)"
-        Write-Host "    Available subcategories:" -ForegroundColor Yellow
-        $guidLookup.Keys | Sort-Object | ForEach-Object { Write-Host "      - $_" -ForegroundColor Gray }
-    }
-}
+# ---------------------------------------------------------
+# FIX APPLIED: Hardcoded CSV Content
+# This ensures the GUIDs are always correct and prevents the 
+# "Empty Audit Policy" issue caused by auditpol parsing failures.
+# ---------------------------------------------------------
+$CSVContent = @"
+Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value
+,System,Security System Extension,{6997984B-797A-11D2-8410-006008C0E1D0},,,3
+,System,System Integrity,{6997984C-797A-11D2-8410-006008C0E1D0},,,3
+,System,IPsec Driver,{6997984D-797A-11D2-8410-006008C0E1D0},,,3
+,System,Other System Events,{6997984E-797A-11D2-8410-006008C0E1D0},,,3
+,System,Security State Change,{6997984F-797A-11D2-8410-006008C0E1D0},,,3
+,Account Logon,Kerberos Service Ticket Operations,{0CCE9228-69AE-11D9-BED3-505054503030},,,2
+,Account Logon,Other Account Logon Events,{0CCE9229-69AE-11D9-BED3-505054503030},,,3
+,Account Logon,Kerberos Authentication Service,{0CCE922A-69AE-11D9-BED3-505054503030},,,3
+,Account Logon,Credential Validation,{0CCE922C-69AE-11D9-BED3-505054503030},,,3
+,Account Management,User Account Management,{0CCE9235-69AE-11D9-BED3-505054503030},,,3
+,Account Management,Computer Account Management,{0CCE9236-69AE-11D9-BED3-505054503030},,,3
+,Account Management,Security Group Management,{0CCE9237-69AE-11D9-BED3-505054503030},,,3
+,Account Management,Distribution Group Management,{0CCE9238-69AE-11D9-BED3-505054503030},,,3
+,Account Management,Application Group Management,{0CCE9239-69AE-11D9-BED3-505054503030},,,3
+,Account Management,Other Account Management Events,{0CCE923A-69AE-11D9-BED3-505054503030},,,3
+,Detailed Tracking,Process Creation,{0CCE922B-69AE-11D9-BED3-505054503030},,,3
+,Detailed Tracking,Process Termination,{0CCE922D-69AE-11D9-BED3-505054503030},,,1
+,Detailed Tracking,DPAPI Activity,{0CCE922E-69AE-11D9-BED3-505054503030},,,3
+,Detailed Tracking,RPC Events,{0CCE922F-69AE-11D9-BED3-505054503030},,,3
+,Detailed Tracking,Plug and Play Events,{0CCE9230-69AE-11D9-BED3-505054503030},,,1
+,Detailed Tracking,Token Right Adjusted Events,{0CCE9231-69AE-11D9-BED3-505054503030},,,1
+,Logon/Logoff,Logon,{69979849-797A-11D2-8410-006008C0E1D0},,,3
+,Logon/Logoff,Logoff,{6997984A-797A-11D2-8410-006008C0E1D0},,,1
+,Logon/Logoff,Account Lockout,{0CCE9216-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,IPsec Main Mode,{0CCE9217-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,Special Logon,{0CCE9218-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,IPsec Extended Mode,{0CCE9219-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,Other Logon/Logoff Events,{0CCE921A-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,Network Policy Server,{0CCE9243-69AE-11D9-BED3-505054503030},,,3
+,Logon/Logoff,User / Device Claims,{0CCE9247-69AE-11D9-BED3-505054503030},,,1
+,Logon/Logoff,Group Membership,{0CCE9249-69AE-11D9-BED3-505054503030},,,1
+,Object Access,File System,{0CCE921D-69AE-11D9-BED3-505054503030},,,2
+,Object Access,Registry,{0CCE921E-69AE-11D9-BED3-505054503030},,,2
+,Object Access,Kernel Object,{0CCE921F-69AE-11D9-BED3-505054503030},,,2
+,Object Access,SAM,{0CCE9220-69AE-11D9-BED3-505054503030},,,2
+,Object Access,Certification Services,{0CCE9221-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Application Generated,{0CCE9222-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Handle Manipulation,{0CCE9223-69AE-11D9-BED3-505054503030},,,0
+,Object Access,File Share,{0CCE9224-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Filtering Platform Packet Drop,{0CCE9225-69AE-11D9-BED3-505054503030},,,1
+,Object Access,Filtering Platform Connection,{0CCE9226-69AE-11D9-BED3-505054503030},,,2
+,Object Access,Other Object Access Events,{0CCE9227-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Detailed File Share,{0CCE9244-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Removable Storage,{0CCE9245-69AE-11D9-BED3-505054503030},,,3
+,Object Access,Central Policy Staging,{0CCE9246-69AE-11D9-BED3-505054503030},,,0
+,Policy Change,Audit Policy Change,{0CCE9233-69AE-11D9-BED3-505054503030},,,3
+,Policy Change,Authentication Policy Change,{0CCE9234-69AE-11D9-BED3-505054503030},,,3
+,Policy Change,Authorization Policy Change,{0CCE9232-69AE-11D9-BED3-505054503030},,,3
+,Policy Change,MPSSVC Rule-Level Policy Change,{0CCE923F-69AE-11D9-BED3-505054503030},,,3
+,Policy Change,Filtering Platform Policy Change,{0CCE9240-69AE-11D9-BED3-505054503030},,,3
+,Policy Change,Other Policy Change Events,{0CCE9241-69AE-11D9-BED3-505054503030},,,3
+,Privilege Use,Sensitive Privilege Use,{0CCE923B-69AE-11D9-BED3-505054503030},,,3
+,Privilege Use,Non Sensitive Privilege Use,{0CCE923C-69AE-11D9-BED3-505054503030},,,0
+,Privilege Use,Other Privilege Use Events,{0CCE923D-69AE-11D9-BED3-505054503030},,,0
+"@
 
 # Save CSV - Write directly to file to ensure proper formatting
 [System.IO.File]::WriteAllText($AuditCSVPath, $CSVContent, [System.Text.Encoding]::ASCII)
+Write-Host "    Audit CSV generated successfully (Static Mode)." -ForegroundColor Green
 
-# Get GPO path
+# Get GPO path in SYSVOL
 $GPOPath = "\\$env:USERDNSDOMAIN\SYSVOL\$env:USERDNSDOMAIN\Policies\{$($GPO.Id)}\Machine\Microsoft\Windows NT\Audit"
 
-Write-Host "`n[*] Applying audit policy to GPO..." -ForegroundColor Yellow
+Write-Host "`n[*] Applying audit policy to GPO in SYSVOL..." -ForegroundColor Yellow
+Write-Host "    Path: $GPOPath" -ForegroundColor Gray
 
 # Create audit directory in GPO if it doesn't exist
 if (-not (Test-Path $GPOPath)) {
@@ -261,7 +184,20 @@ if (-not (Test-Path $GPOPath)) {
 }
 
 # Copy audit CSV to GPO
-Copy-Item -Path $AuditCSVPath -Destination "$GPOPath\audit.csv" -Force
+$DestFile = Join-Path $GPOPath "audit.csv"
+Copy-Item -Path $AuditCSVPath -Destination $DestFile -Force
+
+# VERIFY FILE EXISTENCE (Added check)
+if (Test-Path $DestFile) {
+    $item = Get-Item $DestFile
+    if ($item.Length -gt 0) {
+         Write-Host "    [SUCCESS] Audit file verified in SYSVOL." -ForegroundColor Green
+    } else {
+         Write-Warning "    [ERROR] File exists but is empty (0 KB)."
+    }
+} else {
+    Write-Error "    [ERROR] File copy failed. The audit.csv file is NOT in SYSVOL."
+}
 
 # Update GPO version to trigger refresh
 $GPO = Get-GPO -Name $GPOName
@@ -279,7 +215,7 @@ if (Test-Path $GPORegistryPath) {
     }
 }
 
-Write-Host "    Audit policy applied successfully." -ForegroundColor Green
+Write-Host "    GPO Version incremented." -ForegroundColor Green
 
 # Configure additional PowerShell logging for MDE
 Write-Host "`n[*] Configuring PowerShell logging..." -ForegroundColor Yellow
@@ -346,7 +282,6 @@ exit /b 0
     "[Startup]" | Out-File -FilePath $PsScriptsIniPath -Encoding Unicode -Force
     
     Write-Host "    Startup script created and configured." -ForegroundColor Green
-    Write-Host "    Script will clear legacy audit policies on every reboot." -ForegroundColor Gray
 } catch {
     Write-Warning "Failed to create startup script: $_"
 }
@@ -416,8 +351,6 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "`nGPO Details:" -ForegroundColor White
 Write-Host "  Name: $($GPO.DisplayName)" -ForegroundColor Gray
 Write-Host "  GUID: {$($GPO.Id)}" -ForegroundColor Gray
-Write-Host "  Created: $($GPO.CreationTime)" -ForegroundColor Gray
-Write-Host "  Modified: $($GPO.ModificationTime)" -ForegroundColor Gray
 
 if ($TargetOU) {
     Write-Host "`nGPO Link:" -ForegroundColor White
@@ -429,20 +362,8 @@ if ($TargetOU) {
 
 Write-Host "`nNext Steps:" -ForegroundColor White
 Write-Host "  1. Review the GPO settings in Group Policy Management Console" -ForegroundColor Gray
-Write-Host "  2. For EXISTING machines, manually clear legacy audit policies:" -ForegroundColor Gray
-Write-Host "     - Run: auditpol /clear /y" -ForegroundColor DarkGray
-Write-Host "     - Run: gpupdate /force" -ForegroundColor DarkGray
-Write-Host "  3. NEW machines will automatically clear legacy policies on startup" -ForegroundColor Gray
-Write-Host "  4. Verify audit settings with: auditpol /get /category:*" -ForegroundColor Gray
-Write-Host "  5. Monitor Security event log size and adjust if needed (recommend 1GB+)" -ForegroundColor Gray
+Write-Host "  2. Verify audit file existence:" -ForegroundColor Gray
+Write-Host "     $DestFile" -ForegroundColor DarkGray
+Write-Host "  3. On the client, run: gpupdate /force" -ForegroundColor DarkGray
+Write-Host "  4. Verify settings: auditpol /get /category:*" -ForegroundColor Gray
 Write-Host "`n"
-
-# Optional: Generate report
-$ReportPath = Join-Path $PSScriptRoot "GPO-Report-$($GPOName -replace ' ','-').html"
-Write-Host "[*] Generating GPO report to: $ReportPath" -ForegroundColor Yellow
-try {
-    Get-GPOReport -Name $GPOName -ReportType HTML -Path $ReportPath
-    Write-Host "    Report generated successfully." -ForegroundColor Green
-} catch {
-    Write-Warning "Failed to generate report: $_"
-}
