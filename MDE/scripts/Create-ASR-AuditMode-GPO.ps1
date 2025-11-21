@@ -186,7 +186,7 @@ $ASRRules = @{
 
 # Add Web Shell rule for Server machines
 if ($Machine -eq "Server") {
-    $ASRRules["a18b2bd3-ccb8-4804-8e5c-33dba5d5bfcd"] = 2  # Block Webshell creation for Servers
+    $ASRRules["a8f5898e-1dc8-49a9-9878-85004b8a61e6"] = 2  # Block Webshell creation for Servers
     Write-Host "    Machine Type: Server - Configuring 18 ASR rules (17 standard + Web Shell)" -ForegroundColor Cyan
 } else {
     Write-Host "    Machine Type: Workstation - Configuring 17 ASR rules" -ForegroundColor Cyan
