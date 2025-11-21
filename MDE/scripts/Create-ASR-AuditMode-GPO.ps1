@@ -37,7 +37,7 @@
     - Block Adobe Reader from creating child processes
     - Block persistence through WMI event subscription
     - Block abuse of exploited vulnerable signed drivers
-    - Block rebooting machine in Safe Mode (preview)
+    - Block use of copied or impersonated system tools
     
     ASR Rules Configured (Server):
     - All 17 workstation rules (listed below)
@@ -181,7 +181,7 @@ $ASRRules = @{
     "7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c" = 2  # Block Adobe Reader from creating child processes
     "e6db77e5-3df2-4cf1-b95a-636979351e5b" = 2  # Block persistence through WMI event subscription
     "56a863a9-875e-4185-98a7-b882c64b5ce5" = 2  # Block abuse of exploited vulnerable signed drivers
-    "c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb" = 2  # Block rebooting machine in Safe Mode (preview)
+    "c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb" = 2  # Block use of copied or impersonated system tools
 }
 
 # Add Web Shell rule for Server machines
