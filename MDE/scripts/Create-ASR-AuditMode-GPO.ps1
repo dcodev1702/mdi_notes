@@ -40,7 +40,7 @@
     - Block use of copied or impersonated system tools
     
     ASR Rules Configured (Server):
-    - All 17 workstation rules (listed below)
+    - All 17 workstation rules (listed above)
     - Block Webshell creation for Servers
     
     ASR Rule Values:
