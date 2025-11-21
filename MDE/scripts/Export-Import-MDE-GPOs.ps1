@@ -10,10 +10,15 @@
     related Group Policy Objects in an Active Directory environment.
     
     The script handles four specific GPOs:
+    WORKSTATIONS:
     - ASR Audit Policy - Workstations
     - MDE Audit Policy - Workstations
-    - MDE Audit Policy - Domain Controllers
     - MDE Exploit Protections Policy - Workstations
+
+    DOMAIN CONTROLLERS:
+    - ASR Audit Policy - Domain Controllers
+    - MDE Audit Policy - Domain Controllers
+    
     
     Backup-MDE-GPOs:
     - Exports GPOs to a specified backup location
@@ -82,12 +87,13 @@ function Backup-MDE-GPOs {
     
     Write-Host "Backing up MDE GPOs to: $BackupPath" -ForegroundColor Cyan
     
-    # Back up each GPO
+    # Back up each GPO for Workstations and Domain Controllers OU
     Backup-GPO -Name "ASR Audit Policy - Workstations" -Path $BackupPath
     Backup-GPO -Name "MDE Audit Policy - Workstations" -Path $BackupPath
-    Backup-GPO -Name "MDE Audit Policy - Domain Controllers" -Path $BackupPath
     Backup-GPO -Name "MDE Exploit Protections Policy - Workstations" -Path $BackupPath
-    
+    Backup-GPO -Name "ASR Audit Policy - Domain Controllers" -Path $BackupPath
+    Backup-GPO -Name "MDE Audit Policy - Domain Controllers" -Path $BackupPath
+        
     Write-Host "`nBackup complete! GUID Mapping:" -ForegroundColor Green
     
     # Display GUID mapping for reference
@@ -95,7 +101,7 @@ function Backup-MDE-GPOs {
         $BkupInfoPath = "$($_.FullName)\bkupInfo.xml"
         $BackupXmlPath = "$($_.FullName)\Backup.xml"
         $GPOName = $null
-
+        
         if (Test-Path $BkupInfoPath) {
             [xml]$BkupInfo = Get-Content $BkupInfoPath
             $GPOName = $BkupInfo.BackupInst.GPODisplayName.'#cdata-section'
@@ -103,7 +109,7 @@ function Backup-MDE-GPOs {
             [xml]$BackupXml = Get-Content $BackupXmlPath
             $GPOName = $BackupXml.GroupPolicyBackupScheme.GroupPolicyObject.GroupPolicyCoreSettings.DisplayName.'#cdata-section'
         }
-
+        
         if ($GPOName) {
             [PSCustomObject]@{
                 BackupID = $_.Name
@@ -114,7 +120,7 @@ function Backup-MDE-GPOs {
     
     # List backed up GPO contents
     Get-ChildItem -Path "$BackupPath" | Format-Table Name, LastWriteTime -AutoSize
-
+    
     if (Test-Path "MDE-GPO-Backup") {
         Compress-Archive -Path "MDE-GPO-Backup" -DestinationPath "MDE-GPO-Backup.zip" -Force
         Write-Host "MDE GPO's backed up & compressed successfully!" -ForegroundColor Green
@@ -207,7 +213,7 @@ function Import-MDE-GPOs {
                 Write-Warning "Failed to regenerate bkupInfo.xml: $_"
             }
         }
-
+        
         $GPOName = $null
         $BackupId = $_.Name
         
