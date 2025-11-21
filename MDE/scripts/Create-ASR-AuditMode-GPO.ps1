@@ -1,22 +1,26 @@
 <#
     Author: DCODEV1702 & Claude Sonnet 4.5
-    Date: 19 Nov 2025
+    Date: 21 Nov 2025
     
     .SYNOPSIS
     Creates and configures a Group Policy Object for Attack Surface Reduction (ASR) rules in Audit mode.
     
     .DESCRIPTION
     This script creates or updates a GPO that enables Microsoft Defender Attack Surface Reduction (ASR) 
-    rules in Audit mode for workstations. Audit mode allows you to evaluate the impact of ASR rules 
-    without blocking potentially legitimate activity, making it ideal for initial deployment and testing.
+    rules in Audit mode for servers or workstations. Audit mode allows you to evaluate the impact of ASR 
+    rules without blocking potentially legitimate activity, making it ideal for initial deployment and testing.
     
     The script performs the following actions:
-    - Creates a new GPO named "ASR-Audit-Mode-Workstations" or uses existing GPO
-    - Links the GPO to the Workstations Organizational Unit
+    - Creates a new GPO or uses existing GPO
+    - Links the GPO to the specified Organizational Unit
     - Enables the ASR feature itself (ExploitGuard_ASR_Rules)
-    - Configures 17 ASR rules in Audit mode (value = 2)
+    - Configures ASR rules in Audit mode (value = 2) based on machine type
     
-    ASR Rules Configured:
+    Machine Type Rules:
+    - Server: Configures all 17 workstation rules + Web Shell rule (18 rules total)
+    - Workstation: Configures standard 17 ASR rules
+    
+    ASR Rules Configured (Workstation):
     - Block executable content from email client and webmail
     - Block all Office applications from creating child processes
     - Block Office applications from creating executable content
@@ -35,28 +39,42 @@
     - Block abuse of exploited vulnerable signed drivers
     - Block rebooting machine in Safe Mode (preview)
     
+    ASR Rules Configured (Server):
+    - All 17 workstation rules (listed below)
+    - Block Webshell creation for Servers
+    
     ASR Rule Values:
     - 0 = Disabled
     - 1 = Block mode (enforcement)
     - 2 = Audit mode (logging only)
     
+    .PARAMETER Machine
+    Target machine type for ASR rules configuration.
+    Valid values: "Server", "Workstation"
+    Required: Yes
+    
     .PARAMETER GPOName
     Name of the Group Policy Object to create or update.
-    Default: "ASR Audit Policy Workstations"
+    Default: "ASR Audit Policy - [Machine Type]"
     
-    .PARAMETER OU
+    .PARAMETER TargetOU
     Distinguished Name of the Organizational Unit to link the GPO to.
-    Default: "OU=Workstations,DC=contoso,DC=local"
+    Default: "OU=[Machine Type],DC=contoso,DC=local"
     
     .EXAMPLE
-    .\Create-ASR-AuditMode-GPO.ps1
+    .\Create-ASR-AuditMode-GPO.ps1 -Machine Workstation
     
-    Creates the ASR audit mode GPO with default settings and links it to the Workstations OU.
+    Creates the ASR audit mode GPO for workstations with default settings.
     
     .EXAMPLE
-    .\Create-ASR-AuditMode-GPO.ps1 -GPOName "ASR Audit Policy - Workstations" -TargetOU "OU=Workstations,DC=contoso,DC=local"
+    .\Create-ASR-AuditMode-GPO.ps1 -Machine Server
     
-    Creates a custom-named GPO and links it to a different OU.
+    Creates the ASR audit mode GPO for servers with all 18 ASR rules (17 standard + Web Shell).
+    
+    .EXAMPLE
+    .\Create-ASR-AuditMode-GPO.ps1 -Machine Workstation -GPOName "Custom ASR Policy" -TargetOU "OU=Finance,DC=contoso,DC=local
+    
+    Creates a custom-named GPO for workstations and links it to a specific OU.
     
     .NOTES
     Requirements:
@@ -65,7 +83,7 @@
     - Run from Domain Controller or system with RSAT installed
     
     After deployment:
-    1. Run 'gpupdate /force' on target workstations
+    1. Run 'gpupdate /force' on target machines
     2. Monitor ASR events in Event Viewer:
        - Applications and Services Logs > Microsoft > Windows > Windows Defender > Operational
        - Event IDs: 1121 (Audit), 1122 (Block)
@@ -81,18 +99,40 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
-    [string]$GPOName = "ASR Audit Policy - Workstations",
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("Server", "Workstation")]
+    [string]$Machine,
     
     [Parameter(Mandatory=$false)]
-    [string]$TargetOU = "OU=Workstations,DC=contoso,DC=local"
+    [string]$GPOName,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$TargetOU
 )
+
+# Set default values based on Machine type if not specified
+if (-not $GPOName) {
+    if ($Machine -eq "Server") {
+        $GPOName = "ASR Audit Policy - Domain Controllers"
+    } else {
+        $GPOName = "ASR Audit Policy - Workstations"
+    }
+}
+
+if (-not $TargetOU) {
+    if ($Machine -eq "Server") {
+        $TargetOU = "OU=Domain Controllers,DC=contoso,DC=local"
+    } else {
+        $TargetOU = "OU=Workstations,DC=contoso,DC=local"
+    }
+}
 
 # Import required module
 Import-Module GroupPolicy
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "ASR Audit Mode GPO Configuration" -ForegroundColor Cyan
+Write-Host "Target: $Machine" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Create new GPO or use existing
@@ -118,12 +158,12 @@ Write-Host "`n[*] Enabling Attack Surface Reduction feature..." -ForegroundColor
 
 # CRITICAL: Enable ASR itself first
 Set-GPRegistryValue -Name $GPOName -Key $RegPath -ValueName "ExploitGuard_ASR_Rules" -Type DWord -Value 1 | Out-Null
+Start-Sleep -Milliseconds 300
 Write-Host "    ASR feature enabled." -ForegroundColor Green
 
 Write-Host "`n[*] Configuring ASR rules in Audit mode (value = 2)..." -ForegroundColor Yellow
 
-# ASR Rules to enable in Audit mode (value = 2)
-# Rule GUID = Rule Mode (2 = Audit)
+# Define base ASR rules (common to both Server and Workstation)
 $ASRRules = @{
     "BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550" = 2  # Block executable content from email client and webmail
     "D4F940AB-401B-4EFC-AADC-AD5F3C50688A" = 2  # Block all Office applications from creating child processes
@@ -144,9 +184,19 @@ $ASRRules = @{
     "c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb" = 2  # Block rebooting machine in Safe Mode (preview)
 }
 
+# Add Web Shell rule for Server machines
+if ($Machine -eq "Server") {
+    $ASRRules["a18b2bd3-ccb8-4804-8e5c-33dba5d5bfcd"] = 2  # Block Webshell creation for Servers
+    Write-Host "    Machine Type: Server - Configuring 18 ASR rules (17 standard + Web Shell)" -ForegroundColor Cyan
+} else {
+    Write-Host "    Machine Type: Workstation - Configuring 17 ASR rules" -ForegroundColor Cyan
+}
+
 # Set each ASR rule - GUID on left, numeric value (2) on right
+# Set Sleep to 400ms so the script doesn't get ahead of the system.
 $ruleCount = 0
 foreach ($RuleID in $ASRRules.Keys) {
+    Start-Sleep -Milliseconds 400
     Set-GPRegistryValue -Name $GPOName -Key "$RegPath\Rules" -ValueName $RuleID -Type String -Value $ASRRules[$RuleID] | Out-Null
     $ruleCount++
     Write-Host "    [+] Rule $ruleCount of $($ASRRules.Count) configured: $RuleID" -ForegroundColor Gray
@@ -159,12 +209,13 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "`nGPO Details:" -ForegroundColor White
 Write-Host "  Name: $($GPO.DisplayName)" -ForegroundColor Gray
 Write-Host "  GUID: {$($GPO.Id)}" -ForegroundColor Gray
+Write-Host "  Machine Type: $Machine" -ForegroundColor Gray
 Write-Host "  ASR Rules Configured: $($ASRRules.Count)" -ForegroundColor Gray
 Write-Host "  Mode: Audit (value = 2)" -ForegroundColor Gray
 Write-Host "  Linked to: $TargetOU" -ForegroundColor Gray
 
 Write-Host "`nNext Steps:" -ForegroundColor White
-Write-Host "  1. Run 'gpupdate /force' on target workstations" -ForegroundColor Gray
+Write-Host "  1. Run 'gpupdate /force' on target $Machine machines" -ForegroundColor Gray
 Write-Host "  2. Monitor ASR events in Event Viewer (Event IDs 1121 for Audit, 1122 for Block)" -ForegroundColor Gray
 Write-Host "  3. Review audit logs to identify legitimate applications affected" -ForegroundColor Gray
 Write-Host "  4. Adjust rules or add exclusions as needed" -ForegroundColor Gray
