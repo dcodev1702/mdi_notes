@@ -33,7 +33,7 @@ MDI Official Configuration: [Link](https://learn.microsoft.com/en-us/defender-fo
 ---
 
 ## Lab Topology
-**Deploy Lab to Azure** [LAB](https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/LAB/xdr-lab-deploy-v4.json)
+**Deploy XDR Lab to Azure via ARM Template** [ARM Template - XDR LAB](https://raw.githubusercontent.com/dcodev1702/mdi_notes/refs/heads/main/LAB/xdr-lab-deploy-v4.json)
 
 | Host | OS | Role | IP Address |
 |------|-----|------|------------|
