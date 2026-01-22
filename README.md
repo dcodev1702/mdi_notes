@@ -37,9 +37,10 @@ MDI Official Configuration: [Link](https://learn.microsoft.com/en-us/defender-fo
 
 | Host | OS | Role | IP Address |
 |------|-----|------|------------|
-| DC | Windows Server 2022 | Domain Controller + MDI Sensor | 10.0.1.4 |
-| WIN11-01 | Windows 11 Enterprise | Domain-Joined Client / Attack Host | 10.0.1.5 |
-| WIN11-02 | Windows 11 Enterprise | Domain-Joined Client / Victim Host | 10.0.1.6 |
+| DC | Windows Server 2022 | Domain Controller + MDI Sensor | 10.0.0.4 |
+| WIN11-01 | Windows 11 Enterprise 25H2 | Domain-Joined Client / Attack Host | 10.0.0.5 |
+| WIN11-02 | Windows 11 Enterprise 25H2 | Domain-Joined Client / Victim Host | 10.0.0.7 |
+| UBUNTU | Ubuntu 24.04 Linux Server | Non-Domain-Joined / Lab Host | 10.0.0.6 |
 
 **Domain**: contoso.local  
 **Forest Functional Level**: Windows Server 2016 or higher
