@@ -33,6 +33,7 @@ MDI Official Configuration: [Link](https://learn.microsoft.com/en-us/defender-fo
 ---
 
 ## Lab Topology
+**Deploy Lab to Azure** [LAB]()
 
 | Host | OS | Role | IP Address |
 |------|-----|------|------------|
