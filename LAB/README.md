@@ -57,7 +57,8 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 |----------|-------|
 | Local Admin Username | `azureadmin` |
 | Domain Admin Username | `azureadmin` |
-| Password | Set during deployment |
+| Windows Password | Set during deployment |
+| Linux SSH Key | Public key provided during deployment |
 
 ---
 
@@ -87,9 +88,10 @@ Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab.
 
 1. Navigate to the VM in Azure Portal
 2. Click **Connect** > **Bastion**
-3. Enter credentials:
+3. Use SSH key authentication:
    - **Username:** `azureadmin`
-   - **Password:** Your deployment password
+   - **Authentication Type:** SSH Private Key
+   - **Private Key:** The private key that matches the public key passed to `linuxSshPublicKey`
 
 ### Bastion Resource Outputs
 
@@ -111,7 +113,14 @@ Use these outputs to locate the Bastion host in Azure Portal or automation after
 - Azure CLI or PowerShell installed
 - Default deployment region is `eastus2`
 - Default VM size is `Standard_D4ads_v7` (16 GB RAM, 4 vCPU)
-- Password meeting complexity requirements (12+ characters, mixed case, numbers, symbols)
+- Windows admin password meeting complexity requirements (12+ characters, mixed case, numbers, symbols)
+- SSH public key available for the Linux VM in OpenSSH format
+
+Example key generation command:
+
+```bash
+ssh-keygen -t ed25519 -C "azureadmin@linux-xdr-lab-1" -f ~/.ssh/linux-xdr-lab-1
+```
 
 If Azure reports a live capacity constraint for `Standard_D4ads_v7`, use `Standard_D4as_v7` as the first fallback in the same region.
 
@@ -126,7 +135,7 @@ az deployment group create \
   --subscription "1dd93b0d-9968-4d42-8d5b-510d621c7866" \
   --resource-group "xdr-lab-rg" \
   --template-file "xdr-lab-deploy-v4.json" \
-   --parameters adminPassword="<ENTER_STRONG_PASSWORD_HERE>" bastionScaleUnits=2
+   --parameters windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" bastionScaleUnits=2 linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
 ```
 
 ### Deploy via PowerShell
@@ -139,8 +148,9 @@ New-AzResourceGroup -Name "xdr-lab-rg" -Location "eastus2"
 New-AzResourceGroupDeployment `
   -ResourceGroupName "xdr-lab-rg" `
   -TemplateFile "xdr-lab-deploy-v4.json" `
-   -adminPassword (ConvertTo-SecureString "<ENTER_STRONG_PASSWORD_HERE>" -AsPlainText -Force) `
-   -bastionScaleUnits 2
+   -windowsAdminPassword (ConvertTo-SecureString "<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" -AsPlainText -Force) `
+   -bastionScaleUnits 2 `
+   -linuxSshPublicKey (Get-Content "$HOME/.ssh/linux-xdr-lab-1.pub" -Raw)
 ```
 
 ### Deploy via Azure Portal
@@ -152,8 +162,9 @@ New-AzResourceGroupDeployment `
 5. Fill in the parameters:
    - **Subscription:** Select your subscription
    - **Resource Group:** Create new `xdr-lab-rg`
-   - **Admin Password:** Enter a secure password
+   - **Windows Admin Password:** Enter a secure password for the Windows VMs
    - **Bastion Scale Units:** Leave at `2` unless you need higher Bastion concurrency
+   - **Linux SSH Public Key:** Paste your Linux public key in OpenSSH format
 6. Click **Review + create** > **Create**
 
 ---
@@ -273,6 +284,7 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 - Use Azure Bastion or SSH from within the VNET
 - Verify NSG allows port 22 from AzureBastionSubnet to 10.0.0.6
 - Username is `azureadmin` (not domain credentials)
+- Confirm the public key passed to `linuxSshPublicKey` matches the private key you are using
 
 ---
 

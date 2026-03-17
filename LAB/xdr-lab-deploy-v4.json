@@ -9,12 +9,18 @@
         "description": "Admin username for all virtual machines."
       }
     },
-    "adminPassword": {
+    "windowsAdminPassword": {
       "type": "securestring",
       "metadata": {
-        "description": "Password for all virtual machines. Must be at least 12 characters with complexity requirements."
+        "description": "Password for the Windows virtual machines. Must be at least 12 characters with complexity requirements."
       },
       "minLength": 12
+    },
+    "linuxSshPublicKey": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH public key for the Linux VM. Example: ssh-ed25519 AAAA..."
+      }
     },
     "domainName": {
       "type": "string",
@@ -338,7 +344,7 @@
         "osProfile": {
           "computerName": "[variables('serverVmName')]",
           "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
           "windowsConfiguration": {
             "provisionVMAgent": true,
             "enableAutomaticUpdates": true
@@ -381,7 +387,7 @@
         "typeHandlerVersion": "1.10",
         "autoUpgradeMinorVersion": true,
         "settings": {
-          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('adminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
+          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('windowsAdminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
         },
         "protectedSettings": {}
       }
@@ -454,7 +460,7 @@
         "osProfile": {
           "computerName": "[variables('win11Vm1Name')]",
           "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
           "windowsConfiguration": {
             "provisionVMAgent": true,
             "enableAutomaticUpdates": true
@@ -505,7 +511,7 @@
           "Options": "3"
         },
         "protectedSettings": {
-          "Password": "[parameters('adminPassword')]"
+          "Password": "[parameters('windowsAdminPassword')]"
         }
       }
     },
@@ -525,7 +531,7 @@
         "osProfile": {
           "computerName": "[variables('win11Vm2Name')]",
           "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
           "windowsConfiguration": {
             "provisionVMAgent": true,
             "enableAutomaticUpdates": true
@@ -576,7 +582,7 @@
           "Options": "3"
         },
         "protectedSettings": {
-          "Password": "[parameters('adminPassword')]"
+          "Password": "[parameters('windowsAdminPassword')]"
         }
       }
     },
@@ -595,10 +601,17 @@
         "osProfile": {
           "computerName": "[variables('linuxVmName')]",
           "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
           "linuxConfiguration": {
-            "disablePasswordAuthentication": false,
-            "provisionVMAgent": true
+            "disablePasswordAuthentication": true,
+            "provisionVMAgent": true,
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                  "keyData": "[parameters('linuxSshPublicKey')]"
+                }
+              ]
+            }
           }
         },
         "storageProfile": {
