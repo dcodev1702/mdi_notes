@@ -55,8 +55,8 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 | Property | Value |
 |----------|-------|
-| Local Admin Username | `azureadmin` |
-| Domain Admin Username | `azureadmin` |
+| Local Admin Username | `lorenzo` |
+| Domain Admin Username | `lorenzo` |
 | Windows Password | Set during deployment |
 | Linux SSH Key | Public key provided during deployment |
 
@@ -73,7 +73,7 @@ Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab.
 1. Navigate to the VM in Azure Portal
 2. Click **Connect** > **Bastion**
 3. Enter credentials:
-   - **Username:** `azureadmin@xdr-lab.local`
+   - **Username:** `lorenzo@xdr-lab.local`
    - **Password:** Your deployment password
 
 #### Domain Controller (dc-xdr-lab-1)
@@ -81,7 +81,7 @@ Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab.
 1. Navigate to the VM in Azure Portal
 2. Click **Connect** > **Bastion**
 3. Enter credentials:
-   - **Username:** `azureadmin@xdr-lab.local` or `XDR-LAB\azureadmin`
+   - **Username:** `lorenzo@xdr-lab.local` or `XDR-LAB\lorenzo`
    - **Password:** Your deployment password
 
 #### Linux VM (linux-xdr-lab-1)
@@ -89,7 +89,7 @@ Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab.
 1. Navigate to the VM in Azure Portal
 2. Click **Connect** > **Bastion**
 3. Use SSH key authentication:
-   - **Username:** `azureadmin`
+   - **Username:** `lorenzo`
    - **Authentication Type:** SSH Private Key
    - **Private Key:** The private key that matches the public key passed to `linuxSshPublicKey`
 
@@ -119,7 +119,7 @@ Use these outputs to locate the Bastion host in Azure Portal or automation after
 Example key generation command:
 
 ```bash
-ssh-keygen -t ed25519 -C "azureadmin@linux-xdr-lab-1" -f ~/.ssh/linux-xdr-lab-1
+ssh-keygen -t ed25519 -C "lorenzo@linux-xdr-lab-1" -f ~/.ssh/linux-xdr-lab-1
 ```
 
 If Azure reports a live capacity constraint for `Standard_D4ads_v7`, use `Standard_D4as_v7` as the first fallback in the same region.
@@ -202,7 +202,7 @@ New-AzResourceGroupDeployment `
 4. Open Command Prompt and run:
    ```cmd
    whoami
-   # Should show: xdr-lab\azureadmin
+   # Should show: xdr-lab\lorenzo
 
    nltest /dsgetdc:xdr-lab.local
    # Should return DC information
@@ -283,7 +283,7 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 
 - Use Azure Bastion or SSH from within the VNET
 - Verify NSG allows port 22 from AzureBastionSubnet to 10.0.0.6
-- Username is `azureadmin` (not domain credentials)
+- Username is `lorenzo` (not domain credentials)
 - Confirm the public key passed to `linuxSshPublicKey` matches the private key you are using
 
 ---
