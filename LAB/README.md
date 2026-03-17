@@ -126,7 +126,7 @@ az deployment group create \
   --subscription "1dd93b0d-9968-4d42-8d5b-510d621c7866" \
   --resource-group "xdr-lab-rg" \
   --template-file "xdr-lab-deploy-v4.json" \
-   --parameters adminPassword="YourSecurePassword123!" bastionScaleUnits=2
+   --parameters adminPassword="<ENTER_STRONG_PASSWORD_HERE>" bastionScaleUnits=2
 ```
 
 ### Deploy via PowerShell
@@ -139,7 +139,7 @@ New-AzResourceGroup -Name "xdr-lab-rg" -Location "eastus2"
 New-AzResourceGroupDeployment `
   -ResourceGroupName "xdr-lab-rg" `
   -TemplateFile "xdr-lab-deploy-v4.json" `
-   -adminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force) `
+   -adminPassword (ConvertTo-SecureString "<ENTER_STRONG_PASSWORD_HERE>" -AsPlainText -Force) `
    -bastionScaleUnits 2
 ```
 
