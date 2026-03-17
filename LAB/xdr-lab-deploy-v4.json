@@ -32,16 +32,18 @@
     },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_D2s_v5",
+      "defaultValue": "Standard_D4ads_v7",
       "metadata": {
         "description": "Size of the virtual machines"
       }
     },
-    "allowedRdpSource": {
-      "type": "string",
-      "defaultValue": "*",
+    "bastionScaleUnits": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 2,
+      "maxValue": 50,
       "metadata": {
-        "description": "CIDR or IP for RDP access (e.g., 203.0.113.10/32). Use * only for labs."
+        "description": "Scale units for the Azure Bastion Standard SKU. Valid range is 2 to 50."
       }
     },
     "location": {
@@ -55,9 +57,11 @@
   "variables": {
     "vnetName": "xdr-lab-vnet",
     "subnetName": "default",
+    "bastionSubnetName": "AzureBastionSubnet",
     "nsgName": "xdr-lab-nsg",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/24",
+    "bastionSubnetPrefix": "10.0.1.0/26",
     "serverVmName": "dc-xdr-lab-1",
     "serverPrivateIP": "10.0.0.4",
     "win11Vm1Name": "win11-xdr-lab-1",
@@ -66,7 +70,8 @@
     "win11Vm2PrivateIP": "10.0.0.7",
     "linuxVmName": "linux-xdr-lab-1",
     "linuxPrivateIP": "10.0.0.6",
-    "serverPipName": "[concat(variables('serverVmName'), '-pip')]",
+    "bastionHostName": "xdr-lab-bastion",
+    "bastionPublicIpName": "[concat(variables('bastionHostName'), '-pip')]",
     "serverNicName": "[concat(variables('serverVmName'), '-nic')]",
     "win11Vm1NicName": "[concat(variables('win11Vm1Name'), '-nic')]",
     "win11Vm2NicName": "[concat(variables('win11Vm2Name'), '-nic')]",
@@ -81,7 +86,7 @@
       "properties": {
         "securityRules": [
           {
-            "name": "RDP-3389",
+            "name": "RDP-DC-3389",
             "properties": {
               "priority": 1000,
               "access": "Allow",
@@ -89,21 +94,47 @@
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "3389",
-              "sourceAddressPrefix": "[parameters('allowedRdpSource')]",
-              "destinationAddressPrefix": "*"
+              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
+              "destinationAddressPrefix": "[variables('serverPrivateIP')]"
             }
           },
           {
-            "name": "SSH-22",
+            "name": "RDP-WIN11-1-3389",
             "properties": {
               "priority": 1010,
               "access": "Allow",
               "direction": "Inbound",
               "protocol": "Tcp",
               "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
+              "destinationAddressPrefix": "[variables('win11Vm1PrivateIP')]"
+            }
+          },
+          {
+            "name": "RDP-WIN11-2-3389",
+            "properties": {
+              "priority": 1020,
+              "access": "Allow",
+              "direction": "Inbound",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
+              "destinationAddressPrefix": "[variables('win11Vm2PrivateIP')]"
+            }
+          },
+          {
+            "name": "SSH-LINUX-22",
+            "properties": {
+              "priority": 1030,
+              "access": "Allow",
+              "direction": "Inbound",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
               "destinationPortRange": "22",
-              "sourceAddressPrefix": "[parameters('allowedRdpSource')]",
-              "destinationAddressPrefix": "*"
+              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
+              "destinationAddressPrefix": "[variables('linuxPrivateIP')]"
             }
           }
         ]
@@ -132,6 +163,12 @@
                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
               }
             }
+          },
+          {
+            "name": "[variables('bastionSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('bastionSubnetPrefix')]"
+            }
           }
         ]
       }
@@ -139,13 +176,44 @@
     {
       "type": "Microsoft.Network/publicIPAddresses",
       "apiVersion": "2023-09-01",
-      "name": "[variables('serverPipName')]",
+      "name": "[variables('bastionPublicIpName')]",
       "location": "[parameters('location')]",
       "sku": {
         "name": "Standard"
       },
       "properties": {
+        "publicIPAddressVersion": "IPv4",
         "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/bastionHosts",
+      "apiVersion": "2022-07-01",
+      "name": "[variables('bastionHostName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]"
+      ],
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "scaleUnits": "[parameters('bastionScaleUnits')]",
+        "ipConfigurations": [
+          {
+            "name": "bastion-ip-config",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('bastionSubnetName'))]"
+              }
+            }
+          }
+        ]
       }
     },
     {
@@ -154,8 +222,7 @@
       "name": "[variables('serverNicName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('serverPipName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -166,9 +233,6 @@
               "privateIPAddress": "[variables('serverPrivateIP')]",
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
-              },
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('serverPipName'))]"
               }
             }
           }
@@ -359,6 +423,12 @@
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
                       }
+                    }
+                  },
+                  {
+                    "name": "[variables('bastionSubnetName')]",
+                    "properties": {
+                      "addressPrefix": "[variables('bastionSubnetPrefix')]"
                     }
                   }
                 ]
@@ -556,9 +626,17 @@
     }
   ],
   "outputs": {
-    "dcPublicIp": {
+    "bastionHostName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('serverPipName'))).ipAddress]"
+      "value": "[variables('bastionHostName')]"
+    },
+    "bastionHostResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/bastionHosts', variables('bastionHostName'))]"
+    },
+    "bastionPublicIp": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))).ipAddress]"
     },
     "dcPrivateIp": {
       "type": "string",

@@ -8,7 +8,7 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 | VM Name | Operating System | LAN IP | Public IP | Domain Joined |
 |---------|------------------|--------|-----------|---------------|
-| dc-xdr-lab-1 | Windows Server 2022 Datacenter Azure Edition | 10.0.0.4 | Yes | Domain Controller |
+| dc-xdr-lab-1 | Windows Server 2022 Datacenter Azure Edition | 10.0.0.4 | No | Domain Controller |
 | win11-xdr-lab-1 | Windows 11 Enterprise 25H2 | 10.0.0.5 | No | Yes |
 | win11-xdr-lab-2 | Windows 11 Enterprise 25H2 | 10.0.0.7 | No | Yes |
 | linux-xdr-lab-1 | Ubuntu 24.04 LTS | 10.0.0.6 | No | No |
@@ -32,18 +32,22 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 |----------|-------|
 | Virtual Network | xdr-lab-vnet |
 | Address Space | 10.0.0.0/16 |
-| Subnet | default (10.0.0.0/24) |
+| Workload Subnet | default (10.0.0.0/24) |
+| Bastion Subnet | AzureBastionSubnet (10.0.1.0/26) |
 | Network Security Group | xdr-lab-nsg |
+| Bastion Host | xdr-lab-bastion (Standard SKU) |
 | Region | East US 2 |
 
 ### Open Ports (NSG Rules)
 
-| Port | Protocol | Service | Source |
-|------|----------|---------|--------|
-| 3389 | TCP | RDP (Remote Desktop) | Configurable (default: *) |
-| 22 | TCP | SSH | Configurable (default: *) |
+| Port | Protocol | Service | Source | Destination |
+|------|----------|---------|--------|-------------|
+| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | dc-xdr-lab-1 |
+| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | win11-xdr-lab-1 |
+| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | win11-xdr-lab-2 |
+| 22 | TCP | SSH | AzureBastionSubnet | linux-xdr-lab-1 |
 
-> **Security Note:** The default configuration allows RDP/SSH from any source (`*`). For production or internet-facing labs, restrict `allowedRdpSource` to your specific IP address (e.g., `203.0.113.10/32`).
+> **Security Note:** VM admin access is intended to flow through Azure Bastion. The VMs do not receive public IP addresses.
 
 ---
 
@@ -61,7 +65,7 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 ### Option 1: Azure Bastion (Recommended)
 
-Azure Bastion provides secure RDP/SSH access without exposing public IPs on workstations.
+Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab. No VM is deployed with a public IP.
 
 #### Windows VMs (Domain-Joined)
 
@@ -87,27 +91,15 @@ Azure Bastion provides secure RDP/SSH access without exposing public IPs on work
    - **Username:** `azureadmin`
    - **Password:** Your deployment password
 
-### Option 2: Direct RDP (Domain Controller Only)
+### Bastion Resource Outputs
 
-The Domain Controller has a public IP address for direct RDP access.
+The deployment returns the following Bastion-related outputs:
 
-1. Get the public IP from Azure Portal or deployment outputs
-2. Open Remote Desktop Connection
-3. Enter the public IP address
-4. Login with:
-   - **Username:** `azureadmin@xdr-lab.local`
-   - **Password:** Your deployment password
+- `bastionHostName`
+- `bastionHostResourceId`
+- `bastionPublicIp`
 
-### Option 3: RDP via Domain Controller (Jump Box)
-
-For workstations without public IPs:
-
-1. RDP to the Domain Controller (dc-xdr-lab-1) using its public IP
-2. From the DC, open Remote Desktop Connection
-3. Connect to internal IPs:
-   - win11-xdr-lab-1: `10.0.0.5`
-   - win11-xdr-lab-2: `10.0.0.7`
-   - linux-xdr-lab-1: `10.0.0.6` (SSH)
+Use these outputs to locate the Bastion host in Azure Portal or automation after deployment.
 
 ---
 
@@ -117,7 +109,11 @@ For workstations without public IPs:
 
 - Azure subscription with sufficient permissions
 - Azure CLI or PowerShell installed
+- Default deployment region is `eastus2`
+- Default VM size is `Standard_D4ads_v7` (16 GB RAM, 4 vCPU)
 - Password meeting complexity requirements (12+ characters, mixed case, numbers, symbols)
+
+If Azure reports a live capacity constraint for `Standard_D4ads_v7`, use `Standard_D4as_v7` as the first fallback in the same region.
 
 ### Deploy via Azure CLI
 
@@ -130,7 +126,7 @@ az deployment group create \
   --subscription "1dd93b0d-9968-4d42-8d5b-510d621c7866" \
   --resource-group "xdr-lab-rg" \
   --template-file "xdr-lab-deploy-v4.json" \
-  --parameters adminPassword="YourSecurePassword123!"
+   --parameters adminPassword="YourSecurePassword123!" bastionScaleUnits=2
 ```
 
 ### Deploy via PowerShell
@@ -143,7 +139,8 @@ New-AzResourceGroup -Name "xdr-lab-rg" -Location "eastus2"
 New-AzResourceGroupDeployment `
   -ResourceGroupName "xdr-lab-rg" `
   -TemplateFile "xdr-lab-deploy-v4.json" `
-  -adminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force)
+   -adminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force) `
+   -bastionScaleUnits 2
 ```
 
 ### Deploy via Azure Portal
@@ -156,6 +153,7 @@ New-AzResourceGroupDeployment `
    - **Subscription:** Select your subscription
    - **Resource Group:** Create new `xdr-lab-rg`
    - **Admin Password:** Enter a secure password
+   - **Bastion Scale Units:** Leave at `2` unless you need higher Bastion concurrency
 6. Click **Review + create** > **Create**
 
 ---
@@ -164,7 +162,8 @@ New-AzResourceGroupDeployment `
 
 | Phase | Duration | Description |
 |-------|----------|-------------|
-| Network Resources | ~2 min | NSG, VNet, Public IP, NICs |
+| Network Resources | ~3-5 min | NSG, VNet, Bastion subnet, Bastion public IP, NICs |
+| Azure Bastion | ~8-12 min | Bastion Standard deployment |
 | Domain Controller VM | ~5 min | Windows Server 2022 deployment |
 | AD Forest Creation | ~10-15 min | AD DS installation and forest creation |
 | VNET DNS Update | ~1 min | Point VNET DNS to DC |
@@ -250,11 +249,12 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 
 ## Troubleshooting
 
-### Cannot RDP to Domain Controller
+### Cannot Connect Through Bastion
 
-- Verify NSG rules allow port 3389 from your IP
-- Check that the VM is running in Azure Portal
-- Confirm the public IP is assigned
+- Verify the Bastion host deployed successfully in Azure Portal
+- Check that you are connecting from the VM's **Connect > Bastion** blade
+- Confirm the target VM is running and the username format is correct
+- Review Bastion outputs to confirm the expected host was deployed
 
 ### Domain Join Failed
 
@@ -271,7 +271,7 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 ### Linux VM SSH Issues
 
 - Use Azure Bastion or SSH from within the VNET
-- Verify NSG allows port 22
+- Verify NSG allows port 22 from AzureBastionSubnet to 10.0.0.6
 - Username is `azureadmin` (not domain credentials)
 
 ---
