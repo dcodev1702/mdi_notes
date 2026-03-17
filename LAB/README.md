@@ -167,6 +167,55 @@ New-AzResourceGroupDeployment `
    - **Linux SSH Public Key:** Paste your Linux public key in OpenSSH format
 6. Click **Review + create** > **Create**
 
+### Redeploy Existing Lab
+
+Use these commands when you want to redeploy into the existing lab resource group instead of creating a new one. They assume the current template defaults of `adminUsername=lorenzo`, `location=eastus2`, and Linux SSH key auth.
+
+Azure CLI:
+
+```bash
+az deployment group create \
+   --name xdr-lab-deploy-v4-eastus2-$(date +%Y%m%d-%H%M%S) \
+   --resource-group zolab-xdr-range-001 \
+   --template-file /Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json \
+   --parameters adminUsername="lorenzo" \
+                      windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
+                      bastionScaleUnits=2 \
+                      location="eastus2" \
+                      vmSize="Standard_D4ads_v7" \
+                      linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
+```
+
+Azure CLI fallback if `Standard_D4ads_v7` hits live capacity pressure:
+
+```bash
+az deployment group create \
+   --name xdr-lab-deploy-v4-eastus2-$(date +%Y%m%d-%H%M%S) \
+   --resource-group zolab-xdr-range-001 \
+   --template-file /Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json \
+   --parameters adminUsername="lorenzo" \
+                      windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
+                      bastionScaleUnits=2 \
+                      location="eastus2" \
+                      vmSize="Standard_D4as_v7" \
+                      linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
+```
+
+PowerShell:
+
+```powershell
+New-AzResourceGroupDeployment `
+   -Name ("xdr-lab-deploy-v4-eastus2-" + (Get-Date -Format "yyyyMMdd-HHmmss")) `
+   -ResourceGroupName "zolab-xdr-range-001" `
+   -TemplateFile "/Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json" `
+   -adminUsername "lorenzo" `
+   -windowsAdminPassword (ConvertTo-SecureString "<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" -AsPlainText -Force) `
+   -bastionScaleUnits 2 `
+   -location "eastus2" `
+   -vmSize "Standard_D4ads_v7" `
+   -linuxSshPublicKey (Get-Content "$HOME/.ssh/linux-xdr-lab-1.pub" -Raw)
+```
+
 ---
 
 ## Deployment Timeline
