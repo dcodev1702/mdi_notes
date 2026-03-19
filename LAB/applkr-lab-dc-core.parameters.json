@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus2"
+    },
+    "existingVnetResourceGroup": {
+      "value": "zolab-xdr-range-001"
+    },
+    "existingVnetName": {
+      "value": "xdr-lab-vnet"
+    },
+    "bastionHostName": {
+      "value": "xdr-lab-bastion"
+    },
+    "sharedDnsServerVmName": {
+      "value": "dc-xdr-lab-1"
+    },
+    "bastionSubnetPrefix": {
+      "value": "10.0.1.0/26"
+    },
+    "domainControllerSubnetName": {
+      "value": "applkr-lab-subnet"
+    },
+    "domainControllerSubnetPrefix": {
+      "value": "10.0.2.0/26"
+    },
+    "domainControllerName": {
+      "value": "dc-core"
+    },
+    "domainControllerPrivateIp": {
+      "value": "10.0.2.4"
+    },
+    "adminUsername": {
+      "value": "azureadmin"
+    },
+    "domainName": {
+      "value": "applkr-lab.local"
+    },
+    "domainNetbiosName": {
+      "value": "APPLKRLAB"
+    },
+    "vmSize": {
+      "value": "Standard_D4ads_v7"
+    },
+    "osDiskStorageAccountType": {
+      "value": "StandardSSD_LRS"
+    }
+  }
+}

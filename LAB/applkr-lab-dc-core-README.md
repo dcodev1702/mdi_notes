@@ -32,6 +32,7 @@ This deployment intentionally reuses the existing XDR lab Bastion path instead o
 ## Files
 
 - Template: `LAB/applkr-lab-dc-core.json`
+- Parameters: `LAB/applkr-lab-dc-core.parameters.json`
 
 ## Deployment
 
@@ -47,20 +48,8 @@ Validate the template:
 az deployment group validate \
   --resource-group applkr-lab-rg \
   --template-file LAB/applkr-lab-dc-core.json \
-  --parameters location=eastus2 \
-               existingVnetResourceGroup=zolab-xdr-range-001 \
-               existingVnetName=xdr-lab-vnet \
-               bastionHostName=xdr-lab-bastion \
-               sharedDnsServerVmName=dc-xdr-lab-1 \
-               bastionSubnetPrefix=10.0.1.0/26 \
-               domainControllerSubnetName=applkr-lab-subnet \
-               domainControllerSubnetPrefix=10.0.2.0/26 \
-               domainControllerName=dc-core \
-               domainControllerPrivateIp=10.0.2.4 \
-               adminUsername=azureadmin \
-               adminPassword='<ENTER_STRONG_PASSWORD_HERE>' \
-               domainName=applkr-lab.local \
-               domainNetbiosName=APPLKRLAB
+  --parameters @LAB/applkr-lab-dc-core.parameters.json \
+               adminPassword='<ENTER_STRONG_PASSWORD_HERE>'
 ```
 
 Deploy the template:
@@ -70,21 +59,11 @@ az deployment group create \
   --name applkr-lab-dc-core-$(date +%Y%m%d-%H%M%S) \
   --resource-group applkr-lab-rg \
   --template-file LAB/applkr-lab-dc-core.json \
-  --parameters location=eastus2 \
-               existingVnetResourceGroup=zolab-xdr-range-001 \
-               existingVnetName=xdr-lab-vnet \
-               bastionHostName=xdr-lab-bastion \
-               sharedDnsServerVmName=dc-xdr-lab-1 \
-               bastionSubnetPrefix=10.0.1.0/26 \
-               domainControllerSubnetName=applkr-lab-subnet \
-               domainControllerSubnetPrefix=10.0.2.0/26 \
-               domainControllerName=dc-core \
-               domainControllerPrivateIp=10.0.2.4 \
-               adminUsername=azureadmin \
-               adminPassword='<ENTER_STRONG_PASSWORD_HERE>' \
-               domainName=applkr-lab.local \
-               domainNetbiosName=APPLKRLAB
+  --parameters @LAB/applkr-lab-dc-core.parameters.json \
+               adminPassword='<ENTER_STRONG_PASSWORD_HERE>'
 ```
+
+The parameter file intentionally excludes `adminPassword` so no secret is stored in the repository.
 
 ## Verification
 
