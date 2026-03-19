@@ -141,7 +141,7 @@ The script creates and links these GPOs to `OU=Domain Controllers,DC=applkr-lab,
 
 If you want the fuller Advanced Audit Policy baseline instead of the lighter starter audit settings, use:
 
-- `MDE/scripts/Create-APPLKR-AdvancedAudit-GPO.ps1`
+- `LAB/Scripts/Create-APPLKR-AdvancedAudit-GPO.ps1`
 
 Recommended launch flow from a non-domain-joined management host:
 
@@ -152,7 +152,7 @@ runas /netonly /user:APPLKRLAB\azureadmin powershell.exe
 Then run:
 
 ```powershell
-.\MDE\scripts\Create-APPLKR-AdvancedAudit-GPO.ps1
+.\LAB\Scripts\Create-APPLKR-AdvancedAudit-GPO.ps1
 ```
 
 By default it creates and links:

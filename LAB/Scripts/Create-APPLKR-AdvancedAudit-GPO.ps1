@@ -58,7 +58,8 @@ if (-not (Get-Module -ListAvailable -Name GroupPolicy)) {
 
 Import-Module GroupPolicy -ErrorAction Stop
 
-$baseScriptPath = Join-Path $PSScriptRoot "Create-MDE-AuditPolicy-GPO.ps1"
+$baseScriptPath = Join-Path $PSScriptRoot "..\..\MDE\scripts\Create-MDE-AuditPolicy-GPO.ps1"
+$baseScriptPath = [System.IO.Path]::GetFullPath($baseScriptPath)
 if (-not (Test-Path $baseScriptPath)) {
     throw "Required script not found: $baseScriptPath"
 }
