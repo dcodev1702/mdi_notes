@@ -113,6 +113,30 @@ Use one of these usernames after promotion:
 
 No password is published in this repository.
 
+## Starter GPOs
+
+You can create three starter GPOs for the `Domain Controllers` OU from a management workstation by using:
+
+- `MDE/scripts/Create-APPLKR-Starter-GPOs.ps1`
+
+Recommended launch flow from a non-domain-joined management host:
+
+```cmd
+runas /netonly /user:APPLKRLAB\azureadmin powershell.exe
+```
+
+Then run:
+
+```powershell
+.\MDE\scripts\Create-APPLKR-Starter-GPOs.ps1
+```
+
+The script creates and links these GPOs to `OU=Domain Controllers,DC=applkr-lab,DC=local`:
+
+- `APPLKR - DC Audit Policy`
+- `APPLKR - DC PowerShell Logging`
+- `APPLKR - DC Admin Access`
+
 ## Test Cleanup
 
 Deleting the resource group removes the VM, NIC, and NSG, but the dedicated subnet lives in the shared XDR VNet and must be removed separately.
