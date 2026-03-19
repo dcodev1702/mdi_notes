@@ -1,0 +1,334 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Azure region for the standalone domain controller resources."
+      }
+    },
+    "existingVnetResourceGroup": {
+      "type": "string",
+      "defaultValue": "shared-network-rg",
+      "metadata": {
+        "description": "Resource group that contains the existing shared virtual network and Azure Bastion deployment. Supply the real value at deployment time."
+      }
+    },
+    "existingVnetName": {
+      "type": "string",
+      "defaultValue": "shared-lab-vnet",
+      "metadata": {
+        "description": "Existing virtual network that the dedicated domain controller subnet will be added to. Supply the real value at deployment time."
+      }
+    },
+    "bastionHostName": {
+      "type": "string",
+      "defaultValue": "shared-lab-bastion",
+      "metadata": {
+        "description": "Existing Azure Bastion host used for private RDP access. Supply the real value at deployment time."
+      }
+    },
+    "bastionSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.1.0/26",
+      "metadata": {
+        "description": "Address prefix of the AzureBastionSubnet in the shared XDR lab VNet."
+      }
+    },
+    "domainControllerSubnetName": {
+      "type": "string",
+      "defaultValue": "applkr-lab-subnet",
+      "metadata": {
+        "description": "Name of the dedicated subnet for the standalone domain controller."
+      }
+    },
+    "domainControllerSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/26",
+      "metadata": {
+        "description": "Address prefix for the dedicated subnet that will be added to the existing xdr-lab-vnet."
+      }
+    },
+    "domainControllerName": {
+      "type": "string",
+      "defaultValue": "dc-core",
+      "metadata": {
+        "description": "Computer name and Azure VM name for the Server Core domain controller."
+      }
+    },
+    "domainControllerPrivateIp": {
+      "type": "string",
+      "defaultValue": "10.0.2.4",
+      "metadata": {
+        "description": "Static private IPv4 address assigned to the domain controller NIC."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "azureadmin",
+      "metadata": {
+        "description": "Local administrator username used for the initial VM deployment and the resulting domain admin account after promotion."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "minLength": 12,
+      "metadata": {
+        "description": "Password for the local administrator account and DSRM password during AD DS promotion."
+      }
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "applkr-lab.local",
+      "metadata": {
+        "description": "DNS name of the standalone Active Directory forest."
+      }
+    },
+    "domainNetbiosName": {
+      "type": "string",
+      "defaultValue": "APPLKRLAB",
+      "metadata": {
+        "description": "NetBIOS name for the standalone Active Directory domain."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4ads_v7",
+      "metadata": {
+        "description": "Virtual machine size for the standalone domain controller."
+      }
+    },
+    "osDiskStorageAccountType": {
+      "type": "string",
+      "defaultValue": "StandardSSD_LRS",
+      "allowedValues": [
+        "StandardSSD_LRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Managed disk SKU used for the operating system disk."
+      }
+    }
+  },
+  "variables": {
+    "networkSecurityGroupName": "[concat(parameters('domainControllerName'), '-nsg')]",
+    "networkInterfaceName": "[concat(parameters('domainControllerName'), '-nic')]",
+    "subnetDeploymentName": "deploy-dc-core-subnet",
+    "subnetResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('domainControllerSubnetName'))]",
+    "bastionResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/bastionHosts', parameters('bastionHostName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('subnetDeploymentName')]",
+      "resourceGroup": "[parameters('existingVnetResourceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "existingVnetName": {
+              "type": "string"
+            },
+            "domainControllerSubnetName": {
+              "type": "string"
+            },
+            "domainControllerSubnetPrefix": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('existingVnetName'), parameters('domainControllerSubnetName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('domainControllerSubnetPrefix')]"
+              }
+            }
+          ]
+        },
+        "parameters": {
+          "existingVnetName": {
+            "value": "[parameters('existingVnetName')]"
+          },
+          "domainControllerSubnetName": {
+            "value": "[parameters('domainControllerSubnetName')]"
+          },
+          "domainControllerSubnetPrefix": {
+            "value": "[parameters('domainControllerSubnetPrefix')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('networkSecurityGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "Allow-Bastion-RDP",
+            "properties": {
+              "priority": 100,
+              "access": "Allow",
+              "direction": "Inbound",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "[parameters('bastionSubnetPrefix')]",
+              "destinationAddressPrefix": "[parameters('domainControllerPrivateIp')]"
+            }
+          },
+          {
+            "name": "Deny-Shared-VNet-Inbound",
+            "properties": {
+              "priority": 200,
+              "access": "Deny",
+              "direction": "Inbound",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('networkInterfaceName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[variables('subnetDeploymentName')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('domainControllerPrivateIp')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[parameters('domainControllerName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('domainControllerName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter-core-g2",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "[parameters('osDiskStorageAccountType')]"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(parameters('domainControllerName'), '/PromoteToDomainController')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('domainControllerName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.10",
+        "autoUpgradeMinorVersion": true,
+        "settings": {},
+        "protectedSettings": {
+          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('adminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "bastionHostName": {
+      "type": "string",
+      "value": "[parameters('bastionHostName')]"
+    },
+    "bastionHostResourceId": {
+      "type": "string",
+      "value": "[variables('bastionResourceId')]"
+    },
+    "existingVnetName": {
+      "type": "string",
+      "value": "[parameters('existingVnetName')]"
+    },
+    "domainControllerSubnetName": {
+      "type": "string",
+      "value": "[parameters('domainControllerSubnetName')]"
+    },
+    "domainControllerSubnetResourceId": {
+      "type": "string",
+      "value": "[variables('subnetResourceId')]"
+    },
+    "domainControllerPrivateIp": {
+      "type": "string",
+      "value": "[parameters('domainControllerPrivateIp')]"
+    },
+    "domainControllerVmName": {
+      "type": "string",
+      "value": "[parameters('domainControllerName')]"
+    },
+    "domainName": {
+      "type": "string",
+      "value": "[parameters('domainName')]"
+    }
+  }
+}

@@ -1,5 +1,10 @@
 # XDR Lab Environment - Azure Deployment Guide
 
+## Related Templates
+
+- `xdr-lab-deploy-v4.json`: full XDR lab with DC, Windows 11 endpoints, Linux VM, and Bastion.
+- `applkr-lab-dc-core.json`: standalone Windows Server 2022 Server Core domain controller that reuses the existing XDR lab Bastion path via a dedicated `10.0.2.0/26` subnet. See `applkr-lab-dc-core-README.md` for sanitized deployment examples and Bastion login instructions.
+
 This ARM template deploys a complete XDR (Extended Detection and Response) lab environment in Microsoft Azure, featuring a Windows Active Directory domain with domain-joined Windows 11 workstations and an Ubuntu Linux server.
 
 ---
