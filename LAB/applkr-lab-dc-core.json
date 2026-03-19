@@ -30,6 +30,13 @@
         "description": "Existing Azure Bastion host used for private RDP access. Supply the real value at deployment time."
       }
     },
+    "sharedDnsServerVmName": {
+      "type": "string",
+      "defaultValue": "shared-dns-vm",
+      "metadata": {
+        "description": "Existing Windows DNS server VM that should receive a conditional forwarder for the standalone domain. Supply the real value at deployment time."
+      }
+    },
     "bastionSubnetPrefix": {
       "type": "string",
       "defaultValue": "10.0.1.0/26",
@@ -116,6 +123,7 @@
     "networkSecurityGroupName": "[concat(parameters('domainControllerName'), '-nsg')]",
     "networkInterfaceName": "[concat(parameters('domainControllerName'), '-nic')]",
     "subnetDeploymentName": "deploy-dc-core-subnet",
+    "conditionalForwarderDeploymentName": "configure-shared-dns-forwarder",
     "subnetResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('domainControllerSubnetName'))]",
     "bastionResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/bastionHosts', parameters('bastionHostName'))]"
   },
@@ -308,6 +316,71 @@
           "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('adminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
         }
       }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('conditionalForwarderDeploymentName')]",
+      "resourceGroup": "[parameters('existingVnetResourceGroup')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('domainControllerName'), 'PromoteToDomainController')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "sharedDnsServerVmName": {
+              "type": "string"
+            },
+            "forwarderZoneName": {
+              "type": "string"
+            },
+            "forwarderTargetIp": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Compute/virtualMachines/runCommands",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('sharedDnsServerVmName'), 'ConfigureConditionalForwarder')]",
+              "location": "[resourceGroup().location]",
+              "properties": {
+                "source": {
+                  "script": "param([string]$ZoneName,[string]$MasterServerIp)\n$ErrorActionPreference = 'Stop'\nImport-Module DnsServer\ntry {\n  Add-DnsServerConditionalForwarderZone -Name $ZoneName -MasterServers $MasterServerIp -ReplicationScope Forest -ErrorAction Stop | Out-Null\n} catch {\n  if ($_.Exception.Message -match 'already exists') {\n    Set-DnsServerConditionalForwarderZone -Name $ZoneName -MasterServers $MasterServerIp -ReplicationScope Forest -ErrorAction Stop | Out-Null\n  } else {\n    throw\n  }\n}\nipconfig /flushdns | Out-Null"
+                },
+                "parameters": [
+                  {
+                    "name": "ZoneName",
+                    "value": "[parameters('forwarderZoneName')]"
+                  },
+                  {
+                    "name": "MasterServerIp",
+                    "value": "[parameters('forwarderTargetIp')]"
+                  }
+                ],
+                "timeoutInSeconds": 1800
+              }
+            }
+          ]
+        },
+        "parameters": {
+          "sharedDnsServerVmName": {
+            "value": "[parameters('sharedDnsServerVmName')]"
+          },
+          "forwarderZoneName": {
+            "value": "[parameters('domainName')]"
+          },
+          "forwarderTargetIp": {
+            "value": "[parameters('domainControllerPrivateIp')]"
+          }
+        }
+      }
     }
   ],
   "outputs": {
@@ -342,6 +415,10 @@
     "domainName": {
       "type": "string",
       "value": "[parameters('domainName')]"
+    },
+    "sharedDnsServerVmName": {
+      "type": "string",
+      "value": "[parameters('sharedDnsServerVmName')]"
     }
   }
 }

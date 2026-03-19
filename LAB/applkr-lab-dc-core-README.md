@@ -26,6 +26,7 @@ This deployment intentionally reuses the existing XDR lab Bastion path instead o
 - The template adds the subnet to the existing XDR lab VNet so the current Bastion host can reach the VM over its private IP.
 - The template does not repoint the shared VNet DHCP DNS settings. That avoids breaking or changing the existing XDR lab.
 - The VM is isolated with its own NIC-level NSG. RDP is allowed from the Bastion subnet, and all traffic from `10.0.0.0/24` to `dc-core` is allowed.
+- The template configures a conditional forwarder on the shared lab DNS server so hosts in the XDR lab can resolve `applkr-lab.local` automatically.
 - No endpoints are domain joined.
 
 ## Files
@@ -50,6 +51,7 @@ az deployment group validate \
                existingVnetResourceGroup=zolab-xdr-range-001 \
                existingVnetName=xdr-lab-vnet \
                bastionHostName=xdr-lab-bastion \
+               sharedDnsServerVmName=dc-xdr-lab-1 \
                bastionSubnetPrefix=10.0.1.0/26 \
                domainControllerSubnetName=applkr-lab-subnet \
                domainControllerSubnetPrefix=10.0.2.0/26 \
@@ -72,6 +74,7 @@ az deployment group create \
                existingVnetResourceGroup=zolab-xdr-range-001 \
                existingVnetName=xdr-lab-vnet \
                bastionHostName=xdr-lab-bastion \
+               sharedDnsServerVmName=dc-xdr-lab-1 \
                bastionSubnetPrefix=10.0.1.0/26 \
                domainControllerSubnetName=applkr-lab-subnet \
                domainControllerSubnetPrefix=10.0.2.0/26 \
@@ -107,11 +110,17 @@ az vm run-command invoke \
   --name dc-core \
   --command-id RunPowerShellScript \
   --scripts 'Get-Service NTDS,DNS | Select-Object Name,Status; Get-ADDomain | Select-Object DNSRoot,NetBIOSName; hostname'
+
+az vm run-command invoke \
+  --resource-group zolab-xdr-range-001 \
+  --name win11-xdr-lab-1 \
+  --command-id RunPowerShellScript \
+  --scripts 'Resolve-DnsName dc-core.applkr-lab.local | Select-Object Name,IPAddress'
 ```
 
 ## Login
 
-Connect through the existing Azure Bastion host using the VM resource or private IP `10.0.2.4`.
+Connect through the existing Azure Bastion host using the VM resource, private IP `10.0.2.4`, or FQDN `dc-core.applkr-lab.local`.
 
 Azure Portal path:
 
