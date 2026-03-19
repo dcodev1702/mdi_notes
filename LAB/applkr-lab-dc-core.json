@@ -186,6 +186,19 @@
             }
           },
           {
+            "name": "Allow-Workload-Subnet-All",
+            "properties": {
+              "priority": 110,
+              "access": "Allow",
+              "direction": "Inbound",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "10.0.0.0/24",
+              "destinationAddressPrefix": "[parameters('domainControllerPrivateIp')]"
+            }
+          },
+          {
             "name": "Deny-Shared-VNet-Inbound",
             "properties": {
               "priority": 200,
