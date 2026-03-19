@@ -137,6 +137,34 @@ The script creates and links these GPOs to `OU=Domain Controllers,DC=applkr-lab,
 - `APPLKR - DC PowerShell Logging`
 - `APPLKR - DC Admin Access`
 
+## Advanced Audit GPO
+
+If you want the fuller Advanced Audit Policy baseline instead of the lighter starter audit settings, use:
+
+- `MDE/scripts/Create-APPLKR-AdvancedAudit-GPO.ps1`
+
+Recommended launch flow from a non-domain-joined management host:
+
+```cmd
+runas /netonly /user:APPLKRLAB\azureadmin powershell.exe
+```
+
+Then run:
+
+```powershell
+.\MDE\scripts\Create-APPLKR-AdvancedAudit-GPO.ps1
+```
+
+By default it creates and links:
+
+- `APPLKR - DC Advanced Audit Policy`
+
+to:
+
+- `OU=Domain Controllers,DC=applkr-lab,DC=local`
+
+This wrapper uses the repository's fuller MDE audit policy baseline and then adds PowerShell transcription settings suited to the APPLKR lab.
+
 ## Test Cleanup
 
 Deleting the resource group removes the VM, NIC, and NSG, but the dedicated subnet lives in the shared XDR VNet and must be removed separately.
