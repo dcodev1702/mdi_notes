@@ -37,13 +37,6 @@
         "description": "Existing Windows DNS server VM that should receive a conditional forwarder for the standalone domain. Supply the real value at deployment time."
       }
     },
-    "bastionSubnetPrefix": {
-      "type": "string",
-      "defaultValue": "10.0.1.0/26",
-      "metadata": {
-        "description": "Address prefix of the AzureBastionSubnet in the shared XDR lab VNet."
-      }
-    },
     "domainControllerSubnetName": {
       "type": "string",
       "defaultValue": "applkr-lab-subnet",
@@ -120,7 +113,6 @@
     }
   },
   "variables": {
-    "networkSecurityGroupName": "[concat(parameters('domainControllerName'), '-nsg')]",
     "networkInterfaceName": "[concat(parameters('domainControllerName'), '-nic')]",
     "subnetDeploymentName": "deploy-dc-core-subnet",
     "conditionalForwarderDeploymentName": "configure-shared-dns-forwarder",
@@ -174,67 +166,14 @@
       }
     },
     {
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('networkSecurityGroupName')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "Allow-Bastion-RDP",
-            "properties": {
-              "priority": 100,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "[parameters('bastionSubnetPrefix')]",
-              "destinationAddressPrefix": "[parameters('domainControllerPrivateIp')]"
-            }
-          },
-          {
-            "name": "Allow-Workload-Subnet-All",
-            "properties": {
-              "priority": 110,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "*",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "10.0.0.0/24",
-              "destinationAddressPrefix": "[parameters('domainControllerPrivateIp')]"
-            }
-          },
-          {
-            "name": "Deny-Shared-VNet-Inbound",
-            "properties": {
-              "priority": 200,
-              "access": "Deny",
-              "direction": "Inbound",
-              "protocol": "*",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "VirtualNetwork",
-              "destinationAddressPrefix": "*"
-            }
-          }
-        ]
-      }
-    },
-    {
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2023-09-01",
       "name": "[variables('networkInterfaceName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[variables('subnetDeploymentName')]",
-        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        "[variables('subnetDeploymentName')]"
       ],
       "properties": {
-        "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-        },
         "ipConfigurations": [
           {
             "name": "ipconfig1",

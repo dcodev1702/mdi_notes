@@ -25,7 +25,7 @@ This deployment intentionally reuses the existing XDR lab Bastion path instead o
 
 - The template adds the subnet to the existing XDR lab VNet so the current Bastion host can reach the VM over its private IP.
 - The template does not repoint the shared VNet DHCP DNS settings. That avoids breaking or changing the existing XDR lab.
-- The VM is isolated with its own NIC-level NSG. RDP is allowed from the Bastion subnet, and all traffic from `10.0.0.0/24` to `dc-core` is allowed.
+- Traffic filtering is applied at the subnet level by the shared `xdr-lab-vnet` NSG. This avoids double evaluation from a second NIC-level NSG on `dc-core`.
 - The template configures a conditional forwarder on the shared lab DNS server so hosts in the XDR lab can resolve `applkr-lab.local` automatically.
 - No endpoints are domain joined.
 

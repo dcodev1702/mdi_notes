@@ -17,9 +17,6 @@
     "sharedDnsServerVmName": {
       "value": "dc-xdr-lab-1"
     },
-    "bastionSubnetPrefix": {
-      "value": "10.0.1.0/26"
-    },
     "domainControllerSubnetName": {
       "value": "applkr-lab-subnet"
     },
