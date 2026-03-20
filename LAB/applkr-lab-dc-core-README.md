@@ -2,6 +2,8 @@
 
 This standalone ARM template deploys a single Windows Server 2022 Server Core VM, adds a dedicated subnet to the existing XDR lab virtual network, and promotes the VM into a separate Active Directory forest.
 
+In the current lab state, `win11-xdr-lab-2` is the dedicated management workstation for this standalone domain and is joined to `applkr-lab.local` for normal administration of `dc-core`.
+
 No password is stored in this repository. Pass the administrator password at deployment time.
 
 The template keeps the shared-network defaults generic. The working values used for this lab are provided explicitly in the deployment examples below.
@@ -27,7 +29,8 @@ This deployment intentionally reuses the existing XDR lab Bastion path instead o
 - The template does not repoint the shared VNet DHCP DNS settings. That avoids breaking or changing the existing XDR lab.
 - Traffic filtering is applied at the subnet level by the shared `xdr-lab-vnet` NSG. This avoids double evaluation from a second NIC-level NSG on `dc-core`.
 - The template configures a conditional forwarder on the shared lab DNS server so hosts in the XDR lab can resolve `applkr-lab.local` automatically.
-- No endpoints are domain joined.
+- The standalone DC template does not domain-join any endpoints by itself.
+- In the active lab, `win11-xdr-lab-2` has been joined to `applkr-lab.local` and should be treated as the primary management VM for Server Core administration, GPMC, RSAT, and validation.
 
 ## Files
 
@@ -92,9 +95,19 @@ az vm run-command invoke \
 
 az vm run-command invoke \
   --resource-group zolab-xdr-range-001 \
-  --name win11-xdr-lab-1 \
+  --name win11-xdr-lab-2 \
   --command-id RunPowerShellScript \
   --scripts 'Resolve-DnsName dc-core.applkr-lab.local | Select-Object Name,IPAddress'
+```
+
+If `win11-xdr-lab-2` is already joined to `applkr-lab.local`, validate end-to-end management reachability from that VM:
+
+```bash
+az vm run-command invoke \
+  --resource-group zolab-xdr-range-001 \
+  --name win11-xdr-lab-2 \
+  --command-id RunPowerShellScript \
+  --scripts 'Resolve-DnsName dc-core.applkr-lab.local; Test-NetConnection dc-core.applkr-lab.local -Port 3389 | Select-Object ComputerName,RemotePort,TcpTestSucceeded'
 ```
 
 ## Login
@@ -113,19 +126,35 @@ Use one of these usernames after promotion:
 
 No password is published in this repository.
 
+## Management Model
+
+The intended management pattern for this lab is:
+
+- `dc-core` remains Server Core only
+- `win11-xdr-lab-2` is the dedicated GUI management VM for `applkr-lab.local`
+- RSAT, GPMC, PowerShell, and remote admin tools should be run from `win11-xdr-lab-2`
+
+Recommended workflow:
+
+1. Sign in to `win11-xdr-lab-2` with `APPLKRLAB\azureadmin`.
+2. Install the required RSAT features if they are not already present.
+3. Use `gpmc.msc`, `dsa.msc`, PowerShell, and normal remote management from that VM.
+4. Use Azure Bastion or direct private-name resolution to reach `dc-core` when you need console access.
+
+RSAT installation commands:
+
+```powershell
+Add-WindowsCapability -Online -Name Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0
+Add-WindowsCapability -Online -Name Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
+```
+
 ## Starter GPOs
 
-You can create three starter GPOs for the `Domain Controllers` OU from a management workstation by using:
+You can create three starter GPOs for the `Domain Controllers` OU from the dedicated management VM by using:
 
 - `MDE/scripts/Create-APPLKR-Starter-GPOs.ps1`
 
-Recommended launch flow from a non-domain-joined management host:
-
-```cmd
-runas /netonly /user:APPLKRLAB\azureadmin powershell.exe
-```
-
-Then run:
+From `win11-xdr-lab-2`, sign in with `APPLKRLAB\azureadmin`, open an elevated PowerShell session, and run:
 
 ```powershell
 .\MDE\scripts\Create-APPLKR-Starter-GPOs.ps1
@@ -143,13 +172,7 @@ If you want the fuller Advanced Audit Policy baseline instead of the lighter sta
 
 - `LAB/Scripts/Create-APPLKR-AdvancedAudit-GPO.ps1`
 
-Recommended launch flow from a non-domain-joined management host:
-
-```cmd
-runas /netonly /user:APPLKRLAB\azureadmin powershell.exe
-```
-
-Then run:
+From `win11-xdr-lab-2`, sign in with `APPLKRLAB\azureadmin`, open an elevated PowerShell session, and run:
 
 ```powershell
 .\LAB\Scripts\Create-APPLKR-AdvancedAudit-GPO.ps1
@@ -163,7 +186,15 @@ to:
 
 - `OU=Domain Controllers,DC=applkr-lab,DC=local`
 
-This wrapper uses the repository's fuller MDE audit policy baseline and then adds PowerShell transcription settings suited to the APPLKR lab.
+This wrapper uses the repository's fuller MDE audit policy baseline and then adds PowerShell transcription settings and MDI-specific audit entries suited to the APPLKR lab.
+
+Validate GPO application on `dc-core` with:
+
+```cmd
+gpupdate /force
+gpresult /r /scope computer
+auditpol /get /category:*
+```
 
 ## Test Cleanup
 
