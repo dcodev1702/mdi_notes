@@ -2,8 +2,9 @@
 
 ## Related Templates
 
-- `xdr-lab-deploy-v4.json`: full XDR lab with DC, Windows 11 endpoints, Linux VM, and Bastion.
-- `applkr-lab-dc-core.json`: standalone Windows Server 2022 Server Core domain controller that reuses the existing XDR lab Bastion path via a dedicated `10.0.2.0/26` subnet. See `applkr-lab-dc-core-README.md` for sanitized deployment examples and Bastion login instructions.
+- `xdr-lab-deploy-v4.json`: full XDR lab with DC, Windows 11 endpoints, and Linux VM deployed into the existing Zolab-vNet in the Connectivity resource group.
+- `xdr-lab-test-dc.json`: smoke-test template that deploys a single DC into Zolab-vNet, promotes AD, verifies internet connectivity via NAT gateway, and can be torn down cleanly.
+- `applkr-lab-dc-core.json`: standalone Windows Server 2022 Server Core domain controller that adds a dedicated `10.4.2.0/26` subnet to Zolab-vNet. See `applkr-lab-dc-core-README.md` for deployment examples and login instructions.
 
 This ARM template deploys a complete XDR (Extended Detection and Response) lab environment in Microsoft Azure, featuring a Windows Active Directory domain with domain-joined Windows 11 workstations and an Ubuntu Linux server.
 
@@ -13,10 +14,10 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 | VM Name | Operating System | LAN IP | Public IP | Domain Joined |
 |---------|------------------|--------|-----------|---------------|
-| dc-xdr-lab-1 | Windows Server 2022 Datacenter Azure Edition | 10.0.0.4 | No | Domain Controller |
-| win11-xdr-lab-1 | Windows 11 Enterprise 25H2 | 10.0.0.5 | No | Yes |
-| win11-xdr-lab-2 | Windows 11 Enterprise 25H2 | 10.0.0.7 | No | Yes |
-| linux-xdr-lab-1 | Ubuntu 24.04 LTS | 10.0.0.6 | No | No |
+| dc-xdr-lab-1 | Windows Server 2022 Datacenter Azure Edition | 10.4.0.4 | No | Domain Controller |
+| win11-xdr-lab-1 | Windows 11 Enterprise 25H2 | 10.4.0.5 | No | Yes |
+| win11-xdr-lab-2 | Windows 11 Enterprise 25H2 | 10.4.0.7 | No | Yes |
+| linux-xdr-lab-1 | Ubuntu 24.04 LTS | 10.4.0.6 | No | No |
 
 ---
 
@@ -26,8 +27,8 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 |----------|-------|
 | Domain Name (FQDN) | `xdr-lab.local` |
 | NetBIOS Name | `XDR-LAB` |
-| Domain Controller | dc-xdr-lab-1 (10.0.0.4) |
-| DNS Server | 10.0.0.4 |
+| Domain Controller | dc-xdr-lab-1 (10.4.0.4) |
+| DNS Server | 10.4.0.4 |
 
 ---
 
@@ -35,24 +36,14 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 | Resource | Value |
 |----------|-------|
-| Virtual Network | xdr-lab-vnet |
-| Address Space | 10.0.0.0/16 |
-| Workload Subnet | default (10.0.0.0/24) |
-| Bastion Subnet | AzureBastionSubnet (10.0.1.0/26) |
-| Network Security Group | xdr-lab-nsg |
-| Bastion Host | xdr-lab-bastion (Standard SKU) |
+| Virtual Network | Zolab-vNet (in Connectivity RG) |
+| Address Space | 10.4.0.0/16 |
+| Workload Subnet | default (10.4.0.0/24) |
+| NAT Gateway | natgw-zolab (outbound internet) |
+| Network Security Group | Zolab-vNet-default-nsg-eastus2 |
 | Region | East US 2 |
 
-### Open Ports (NSG Rules)
-
-| Port | Protocol | Service | Source | Destination |
-|------|----------|---------|--------|-------------|
-| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | dc-xdr-lab-1 |
-| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | win11-xdr-lab-1 |
-| 3389 | TCP | RDP (Remote Desktop) | AzureBastionSubnet | win11-xdr-lab-2 |
-| 22 | TCP | SSH | AzureBastionSubnet | linux-xdr-lab-1 |
-
-> **Security Note:** VM admin access is intended to flow through Azure Bastion. The VMs do not receive public IP addresses.
+All VMs are deployed into the existing `default` subnet of `Zolab-vNet` in the `Connectivity` resource group. Outbound internet is provided by the `natgw-zolab` NAT gateway. No Bastion host is deployed; VM access is via AVD with private network connectivity.
 
 ---
 
@@ -69,44 +60,27 @@ This ARM template deploys a complete XDR (Extended Detection and Response) lab e
 
 ## Connecting to Virtual Machines
 
-### Option 1: Azure Bastion (Recommended)
+### AVD with Private Network Access
 
-Azure Bastion provides the intended RDP/SSH access path for all VMs in this lab. No VM is deployed with a public IP.
+All VMs are accessed via Azure Virtual Desktop (AVD) that has private network connectivity to the Zolab-vNet. No public IP addresses are assigned to any lab VMs.
 
 #### Windows VMs (Domain-Joined)
 
-1. Navigate to the VM in Azure Portal
-2. Click **Connect** > **Bastion**
+1. Connect to your AVD session
+2. RDP to the VM private IP:
+   - **DC:** `10.4.0.4`
+   - **Win11-1:** `10.4.0.5`
+   - **Win11-2:** `10.4.0.7`
 3. Enter credentials:
    - **Username:** `lorenzo@xdr-lab.local`
    - **Password:** Your deployment password
 
-#### Domain Controller (dc-xdr-lab-1)
-
-1. Navigate to the VM in Azure Portal
-2. Click **Connect** > **Bastion**
-3. Enter credentials:
-   - **Username:** `lorenzo@xdr-lab.local` or `XDR-LAB\lorenzo`
-   - **Password:** Your deployment password
-
 #### Linux VM (linux-xdr-lab-1)
 
-1. Navigate to the VM in Azure Portal
-2. Click **Connect** > **Bastion**
-3. Use SSH key authentication:
+1. Connect to your AVD session
+2. SSH to `10.4.0.6`:
    - **Username:** `lorenzo`
-   - **Authentication Type:** SSH Private Key
-   - **Private Key:** The private key that matches the public key passed to `linuxSshPublicKey`
-
-### Bastion Resource Outputs
-
-The deployment returns the following Bastion-related outputs:
-
-- `bastionHostName`
-- `bastionHostResourceId`
-- `bastionPublicIp`
-
-Use these outputs to locate the Bastion host in Azure Portal or automation after deployment.
+   - **Authentication:** SSH private key matching the public key passed to `linuxSshPublicKey`
 
 ---
 
@@ -120,6 +94,7 @@ Use these outputs to locate the Bastion host in Azure Portal or automation after
 - Default VM size is `Standard_D4ads_v7` (16 GB RAM, 4 vCPU)
 - Windows admin password meeting complexity requirements (12+ characters, mixed case, numbers, symbols)
 - SSH public key available for the Linux VM in OpenSSH format
+- Existing Connectivity RG with Zolab-vNet, natgw-zolab, and Zolab-vNet-default-nsg-eastus2
 
 Example key generation command:
 
@@ -137,10 +112,11 @@ az group create --name xdr-lab-rg --location eastus2
 
 # Deploy the template
 az deployment group create \
-  --subscription "1dd93b0d-9968-4d42-8d5b-510d621c7866" \
   --resource-group "xdr-lab-rg" \
   --template-file "xdr-lab-deploy-v4.json" \
-   --parameters windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" bastionScaleUnits=2 linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
+  --parameters windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
+               connectivityResourceGroup="Connectivity" \
+               linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
 ```
 
 ### Deploy via PowerShell
@@ -153,9 +129,9 @@ New-AzResourceGroup -Name "xdr-lab-rg" -Location "eastus2"
 New-AzResourceGroupDeployment `
   -ResourceGroupName "xdr-lab-rg" `
   -TemplateFile "xdr-lab-deploy-v4.json" `
-   -windowsAdminPassword (ConvertTo-SecureString "<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" -AsPlainText -Force) `
-   -bastionScaleUnits 2 `
-   -linuxSshPublicKey (Get-Content "$HOME/.ssh/linux-xdr-lab-1.pub" -Raw)
+  -windowsAdminPassword (ConvertTo-SecureString "<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" -AsPlainText -Force) `
+  -connectivityResourceGroup "Connectivity" `
+  -linuxSshPublicKey (Get-Content "$HOME/.ssh/linux-xdr-lab-1.pub" -Raw)
 ```
 
 ### Deploy via Azure Portal
@@ -168,7 +144,7 @@ New-AzResourceGroupDeployment `
    - **Subscription:** Select your subscription
    - **Resource Group:** Create new `xdr-lab-rg`
    - **Windows Admin Password:** Enter a secure password for the Windows VMs
-   - **Bastion Scale Units:** Leave at `2` unless you need higher Bastion concurrency
+   - **Connectivity Resource Group:** `Connectivity` (default)
    - **Linux SSH Public Key:** Paste your Linux public key in OpenSSH format
 6. Click **Review + create** > **Create**
 
@@ -181,14 +157,14 @@ Azure CLI:
 ```bash
 az deployment group create \
    --name xdr-lab-deploy-v4-eastus2-$(date +%Y%m%d-%H%M%S) \
-   --resource-group zolab-xdr-range-001 \
-   --template-file /Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json \
+   --resource-group xdr-lab-rg \
+   --template-file LAB/xdr-lab-deploy-v4.json \
    --parameters adminUsername="lorenzo" \
-                      windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
-                      bastionScaleUnits=2 \
-                      location="eastus2" \
-                      vmSize="Standard_D4ads_v7" \
-                      linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
+                windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
+                connectivityResourceGroup="Connectivity" \
+                location="eastus2" \
+                vmSize="Standard_D4ads_v7" \
+                linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
 ```
 
 Azure CLI fallback if `Standard_D4ads_v7` hits live capacity pressure:
@@ -196,14 +172,14 @@ Azure CLI fallback if `Standard_D4ads_v7` hits live capacity pressure:
 ```bash
 az deployment group create \
    --name xdr-lab-deploy-v4-eastus2-$(date +%Y%m%d-%H%M%S) \
-   --resource-group zolab-xdr-range-001 \
-   --template-file /Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json \
+   --resource-group xdr-lab-rg \
+   --template-file LAB/xdr-lab-deploy-v4.json \
    --parameters adminUsername="lorenzo" \
-                      windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
-                      bastionScaleUnits=2 \
-                      location="eastus2" \
-                      vmSize="Standard_D4as_v7" \
-                      linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
+                windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" \
+                connectivityResourceGroup="Connectivity" \
+                location="eastus2" \
+                vmSize="Standard_D4as_v7" \
+                linuxSshPublicKey="$(cat ~/.ssh/linux-xdr-lab-1.pub)"
 ```
 
 PowerShell:
@@ -211,14 +187,35 @@ PowerShell:
 ```powershell
 New-AzResourceGroupDeployment `
    -Name ("xdr-lab-deploy-v4-eastus2-" + (Get-Date -Format "yyyyMMdd-HHmmss")) `
-   -ResourceGroupName "zolab-xdr-range-001" `
-   -TemplateFile "/Users/lorenzo/mdi_notes/LAB/xdr-lab-deploy-v4.json" `
+   -ResourceGroupName "xdr-lab-rg" `
+   -TemplateFile "LAB/xdr-lab-deploy-v4.json" `
    -adminUsername "lorenzo" `
    -windowsAdminPassword (ConvertTo-SecureString "<ENTER_STRONG_WINDOWS_PASSWORD_HERE>" -AsPlainText -Force) `
-   -bastionScaleUnits 2 `
+   -connectivityResourceGroup "Connectivity" `
    -location "eastus2" `
    -vmSize "Standard_D4ads_v7" `
    -linuxSshPublicKey (Get-Content "$HOME/.ssh/linux-xdr-lab-1.pub" -Raw)
+```
+
+---
+
+## Smoke Test Template
+
+Use `xdr-lab-test-dc.json` to validate the Connectivity RG networking before a full lab deployment. It deploys a single DC (`dc-xdr-test-1` at `10.4.0.10`), promotes AD, and runs connectivity tests (DNS resolution, HTTPS outbound, NAT gateway public IP verification, AD promotion status).
+
+```bash
+az group create --name xdr-lab-test-rg --location eastus2
+
+az deployment group create \
+  --resource-group xdr-lab-test-rg \
+  --template-file LAB/xdr-lab-test-dc.json \
+  --parameters windowsAdminPassword="<ENTER_STRONG_WINDOWS_PASSWORD_HERE>"
+```
+
+Tear down after validation:
+
+```bash
+az group delete --name xdr-lab-test-rg --yes --no-wait
 ```
 
 ---
@@ -227,15 +224,14 @@ New-AzResourceGroupDeployment `
 
 | Phase | Duration | Description |
 |-------|----------|-------------|
-| Network Resources | ~3-5 min | NSG, VNet, Bastion subnet, Bastion public IP, NICs |
-| Azure Bastion | ~8-12 min | Bastion Standard deployment |
+| NAT Gateway Validation | ~1 min | Cross-RG check of natgw-zolab association |
+| NICs | ~1-2 min | All network interfaces in parallel |
 | Domain Controller VM | ~5 min | Windows Server 2022 deployment |
 | AD Forest Creation | ~10-15 min | AD DS installation and forest creation |
-| VNET DNS Update | ~1 min | Point VNET DNS to DC |
-| Windows 11 VMs | ~5-7 min | Both workstations deploy in parallel |
+| Windows 11 VMs | ~5-7 min | Both workstations deploy after AD is ready |
 | Domain Join | ~3-5 min | Both workstations join domain |
-| Linux VM | ~3-5 min | Ubuntu deployment (parallel) |
-| **Total** | **~20-30 min** | Complete environment ready |
+| Linux VM | ~3-5 min | Ubuntu deployment (parallel with DC) |
+| **Total** | **~15-25 min** | Complete environment ready |
 
 ---
 
@@ -243,14 +239,14 @@ New-AzResourceGroupDeployment `
 
 ### Verify Domain Controller
 
-1. RDP to dc-xdr-lab-1
+1. RDP to dc-xdr-lab-1 (10.4.0.4) via AVD
 2. Open **Server Manager** > Verify AD DS and DNS roles are installed
 3. Open **Active Directory Users and Computers** > Verify domain `xdr-lab.local` exists
 4. Check **Computers** OU for domain-joined workstations
 
 ### Verify Domain Join (Windows 11 VMs)
 
-1. Connect to win11-xdr-lab-1 or win11-xdr-lab-2
+1. Connect to win11-xdr-lab-1 or win11-xdr-lab-2 via AVD
 2. Open **System Properties** (Win + Pause/Break)
 3. Verify "Domain: xdr-lab.local" is displayed
 4. Open Command Prompt and run:
@@ -268,17 +264,20 @@ From any Windows VM, test connectivity:
 
 ```cmd
 # Ping Domain Controller
-ping 10.0.0.4
+ping 10.4.0.4
 
 # Ping other workstations
-ping 10.0.0.5
-ping 10.0.0.7
+ping 10.4.0.5
+ping 10.4.0.7
 
 # Ping Linux VM
-ping 10.0.0.6
+ping 10.4.0.6
 
 # Test DNS resolution
 nslookup dc-xdr-lab-1.xdr-lab.local
+
+# Verify outbound internet via NAT gateway
+curl https://api.ipify.org
 ```
 
 ---
@@ -314,29 +313,27 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 
 ## Troubleshooting
 
-### Cannot Connect Through Bastion
-
-- Verify the Bastion host deployed successfully in Azure Portal
-- Check that you are connecting from the VM's **Connect > Bastion** blade
-- Confirm the target VM is running and the username format is correct
-- Review Bastion outputs to confirm the expected host was deployed
-
 ### Domain Join Failed
 
 - Ensure DC deployment completed successfully before workstations
-- Verify DNS is set to 10.0.0.4 on workstation NICs
+- Verify DNS is set to 10.4.0.4 on workstation NICs (configured at NIC level)
 - Check that the domain `xdr-lab.local` is resolvable
 
 ### Cannot Reach Workstations from DC
 
 - Verify VMs are running
 - Check Windows Firewall settings on workstations
-- Confirm all VMs are on the same subnet (10.0.0.0/24)
+- Confirm all VMs are on the same subnet (10.4.0.0/24)
+
+### No Outbound Internet
+
+- Verify NAT gateway `natgw-zolab` is associated with the `default` subnet in Zolab-vNet
+- Check deployment outputs for `natGatewayAssociated: true`
+- Verify `pip-natgw-zolab` public IP is allocated
 
 ### Linux VM SSH Issues
 
-- Use Azure Bastion or SSH from within the VNET
-- Verify NSG allows port 22 from AzureBastionSubnet to 10.0.0.6
+- Connect via AVD and SSH to 10.4.0.6
 - Username is `lorenzo` (not domain credentials)
 - Confirm the public key passed to `linuxSshPublicKey` matches the private key you are using
 
@@ -347,7 +344,10 @@ Remove-AzResourceGroup -Name "xdr-lab-rg" -Force -AsJob
 | File | Description |
 |------|-------------|
 | `xdr-lab-deploy-v4.json` | Main ARM template (current version) |
-| `xdr-lab-deploy-v3.json` | Previous version (single Windows 11 VM) |
+| `xdr-lab-test-dc.json` | Smoke-test template for DC + connectivity validation |
+| `applkr-lab-dc-core.json` | Standalone APPLKR domain controller template |
+| `applkr-lab-dc-core.parameters.json` | APPLKR DC parameter values |
+| `applkr-lab-dc-core-README.md` | APPLKR DC deployment guide |
 | `README.md` | This documentation |
 
 ---

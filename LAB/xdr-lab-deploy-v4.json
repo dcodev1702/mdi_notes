@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "2.0.0.0",
   "parameters": {
     "adminUsername": {
       "type": "string",
@@ -43,13 +43,11 @@
         "description": "Size of the virtual machines"
       }
     },
-    "bastionScaleUnits": {
-      "type": "int",
-      "defaultValue": 2,
-      "minValue": 2,
-      "maxValue": 50,
+    "connectivityResourceGroup": {
+      "type": "string",
+      "defaultValue": "Connectivity",
       "metadata": {
-        "description": "Scale units for the Azure Bastion Standard SKU. Valid range is 2 to 50."
+        "description": "Resource group containing the shared Zolab-vNet, NAT gateway, and NSG."
       }
     },
     "location": {
@@ -61,165 +59,79 @@
     }
   },
   "variables": {
-    "vnetName": "xdr-lab-vnet",
+    "existingVnetName": "Zolab-vNet",
     "subnetName": "default",
-    "bastionSubnetName": "AzureBastionSubnet",
-    "nsgName": "xdr-lab-nsg",
-    "addressPrefix": "10.0.0.0/16",
-    "subnetPrefix": "10.0.0.0/24",
-    "bastionSubnetPrefix": "10.0.1.0/26",
+    "natGatewayName": "natgw-zolab",
     "serverVmName": "dc-xdr-lab-1",
-    "serverPrivateIP": "10.0.0.4",
+    "serverPrivateIP": "10.4.0.4",
     "win11Vm1Name": "win11-xdr-lab-1",
-    "win11Vm1PrivateIP": "10.0.0.5",
+    "win11Vm1PrivateIP": "10.4.0.5",
     "win11Vm2Name": "win11-xdr-lab-2",
-    "win11Vm2PrivateIP": "10.0.0.7",
+    "win11Vm2PrivateIP": "10.4.0.7",
     "linuxVmName": "linux-xdr-lab-1",
-    "linuxPrivateIP": "10.0.0.6",
-    "bastionHostName": "xdr-lab-bastion",
-    "bastionPublicIpName": "[concat(variables('bastionHostName'), '-pip')]",
+    "linuxPrivateIP": "10.4.0.6",
     "serverNicName": "[concat(variables('serverVmName'), '-nic')]",
     "win11Vm1NicName": "[concat(variables('win11Vm1Name'), '-nic')]",
     "win11Vm2NicName": "[concat(variables('win11Vm2Name'), '-nic')]",
-    "linuxNicName": "[concat(variables('linuxVmName'), '-nic')]"
+    "linuxNicName": "[concat(variables('linuxVmName'), '-nic')]",
+    "subnetResourceId": "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', variables('existingVnetName'), variables('subnetName'))]"
   },
   "resources": [
     {
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('nsgName')]",
-      "location": "[parameters('location')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "ValidateNatGateway",
+      "resourceGroup": "[parameters('connectivityResourceGroup')]",
       "properties": {
-        "securityRules": [
-          {
-            "name": "RDP-DC-3389",
-            "properties": {
-              "priority": 1000,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
-              "destinationAddressPrefix": "[variables('serverPrivateIP')]"
-            }
-          },
-          {
-            "name": "RDP-WIN11-1-3389",
-            "properties": {
-              "priority": 1010,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
-              "destinationAddressPrefix": "[variables('win11Vm1PrivateIP')]"
-            }
-          },
-          {
-            "name": "RDP-WIN11-2-3389",
-            "properties": {
-              "priority": 1020,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
-              "destinationAddressPrefix": "[variables('win11Vm2PrivateIP')]"
-            }
-          },
-          {
-            "name": "SSH-LINUX-22",
-            "properties": {
-              "priority": 1030,
-              "access": "Allow",
-              "direction": "Inbound",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "22",
-              "sourceAddressPrefix": "[variables('bastionSubnetPrefix')]",
-              "destinationAddressPrefix": "[variables('linuxPrivateIP')]"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('vnetName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-      ],
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": [
-            "[variables('addressPrefix')]"
-          ]
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
         },
-        "subnets": [
-          {
-            "name": "[variables('subnetName')]",
-            "properties": {
-              "addressPrefix": "[variables('subnetPrefix')]",
-              "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-              }
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "vnetName": {
+              "type": "string"
+            },
+            "subnetName": {
+              "type": "string"
+            },
+            "expectedNatGatewayName": {
+              "type": "string"
             }
           },
-          {
-            "name": "[variables('bastionSubnetName')]",
-            "properties": {
-              "addressPrefix": "[variables('bastionSubnetPrefix')]"
+          "variables": {
+            "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+            "natGatewayRef": "[resourceId('Microsoft.Network/natGateways', parameters('expectedNatGatewayName'))]"
+          },
+          "resources": [],
+          "outputs": {
+            "subnetNatGatewayId": {
+              "type": "string",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), reference(variables('subnetRef'), '2023-09-01').natGateway.id, 'NOT_CONFIGURED')]"
+            },
+            "expectedNatGatewayId": {
+              "type": "string",
+              "value": "[variables('natGatewayRef')]"
+            },
+            "natGatewayAssociated": {
+              "type": "bool",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), equals(reference(variables('subnetRef'), '2023-09-01').natGateway.id, variables('natGatewayRef')), false())]"
             }
           }
-        ]
-      }
-    },
-    {
-      "type": "Microsoft.Network/publicIPAddresses",
-      "apiVersion": "2023-09-01",
-      "name": "[variables('bastionPublicIpName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard"
-      },
-      "properties": {
-        "publicIPAddressVersion": "IPv4",
-        "publicIPAllocationMethod": "Static"
-      }
-    },
-    {
-      "type": "Microsoft.Network/bastionHosts",
-      "apiVersion": "2022-07-01",
-      "name": "[variables('bastionHostName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]"
-      ],
-      "sku": {
-        "name": "Standard"
-      },
-      "properties": {
-        "scaleUnits": "[parameters('bastionScaleUnits')]",
-        "ipConfigurations": [
-          {
-            "name": "bastion-ip-config",
-            "properties": {
-              "privateIPAllocationMethod": "Dynamic",
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]"
-              },
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('bastionSubnetName'))]"
-              }
-            }
+        },
+        "parameters": {
+          "vnetName": {
+            "value": "[variables('existingVnetName')]"
+          },
+          "subnetName": {
+            "value": "[variables('subnetName')]"
+          },
+          "expectedNatGatewayName": {
+            "value": "[variables('natGatewayName')]"
           }
-        ]
+        }
       }
     },
     {
@@ -228,7 +140,7 @@
       "name": "[variables('serverNicName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -238,7 +150,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[variables('serverPrivateIP')]",
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+                "id": "[variables('subnetResourceId')]"
               }
             }
           }
@@ -251,7 +163,7 @@
       "name": "[variables('win11Vm1NicName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -261,7 +173,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[variables('win11Vm1PrivateIP')]",
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+                "id": "[variables('subnetResourceId')]"
               }
             }
           }
@@ -279,7 +191,7 @@
       "name": "[variables('win11Vm2NicName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -289,7 +201,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[variables('win11Vm2PrivateIP')]",
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+                "id": "[variables('subnetResourceId')]"
               }
             }
           }
@@ -307,7 +219,7 @@
       "name": "[variables('linuxNicName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
       ],
       "properties": {
         "ipConfigurations": [
@@ -317,7 +229,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[variables('linuxPrivateIP')]",
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+                "id": "[variables('subnetResourceId')]"
               }
             }
           }
@@ -393,65 +305,13 @@
       }
     },
     {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2021-04-01",
-      "name": "UpdateVNetDNS",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "resources": [
-            {
-              "type": "Microsoft.Network/virtualNetworks",
-              "apiVersion": "2023-09-01",
-              "name": "[variables('vnetName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "addressSpace": {
-                  "addressPrefixes": [
-                    "[variables('addressPrefix')]"
-                  ]
-                },
-                "dhcpOptions": {
-                  "dnsServers": [
-                    "[variables('serverPrivateIP')]"
-                  ]
-                },
-                "subnets": [
-                  {
-                    "name": "[variables('subnetName')]",
-                    "properties": {
-                      "addressPrefix": "[variables('subnetPrefix')]",
-                      "networkSecurityGroup": {
-                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-                      }
-                    }
-                  },
-                  {
-                    "name": "[variables('bastionSubnetName')]",
-                    "properties": {
-                      "addressPrefix": "[variables('bastionSubnetPrefix')]"
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2023-09-01",
       "name": "[variables('win11Vm1Name')]",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm1NicName'))]",
-        "[resourceId('Microsoft.Resources/deployments', 'UpdateVNetDNS')]"
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
       ],
       "properties": {
         "hardwareProfile": {
@@ -522,7 +382,7 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm2NicName'))]",
-        "[resourceId('Microsoft.Resources/deployments', 'UpdateVNetDNS')]"
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
       ],
       "properties": {
         "hardwareProfile": {
@@ -639,17 +499,13 @@
     }
   ],
   "outputs": {
-    "bastionHostName": {
-      "type": "string",
-      "value": "[variables('bastionHostName')]"
+    "natGatewayAssociated": {
+      "type": "bool",
+      "value": "[reference('ValidateNatGateway').outputs.natGatewayAssociated.value]"
     },
-    "bastionHostResourceId": {
+    "natGatewayId": {
       "type": "string",
-      "value": "[resourceId('Microsoft.Network/bastionHosts', variables('bastionHostName'))]"
-    },
-    "bastionPublicIp": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))).ipAddress]"
+      "value": "[reference('ValidateNatGateway').outputs.subnetNatGatewayId.value]"
     },
     "dcPrivateIp": {
       "type": "string",
@@ -674,6 +530,10 @@
     "adminUsername": {
       "type": "string",
       "value": "[parameters('adminUsername')]"
+    },
+    "connectivityVnet": {
+      "type": "string",
+      "value": "[variables('existingVnetName')]"
     }
   }
 }

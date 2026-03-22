@@ -6,13 +6,13 @@
       "value": "eastus2"
     },
     "existingVnetResourceGroup": {
-      "value": "zolab-xdr-range-001"
+      "value": "Connectivity"
     },
     "existingVnetName": {
-      "value": "xdr-lab-vnet"
+      "value": "Zolab-vNet"
     },
-    "bastionHostName": {
-      "value": "xdr-lab-bastion"
+    "sharedDnsServerResourceGroup": {
+      "value": "xdr-lab-rg"
     },
     "sharedDnsServerVmName": {
       "value": "dc-xdr-lab-1"
@@ -21,13 +21,13 @@
       "value": "applkr-lab-subnet"
     },
     "domainControllerSubnetPrefix": {
-      "value": "10.0.2.0/26"
+      "value": "10.4.2.0/26"
     },
     "domainControllerName": {
       "value": "dc-core"
     },
     "domainControllerPrivateIp": {
-      "value": "10.0.2.4"
+      "value": "10.4.2.4"
     },
     "adminUsername": {
       "value": "azureadmin"

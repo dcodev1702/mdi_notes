@@ -1,6 +1,6 @@
 # APPLKR Lab - Standalone Server Core Domain Controller
 
-This standalone ARM template deploys a single Windows Server 2022 Server Core VM, adds a dedicated subnet to the existing XDR lab virtual network, and promotes the VM into a separate Active Directory forest.
+This standalone ARM template deploys a single Windows Server 2022 Server Core VM, adds a dedicated subnet to the existing Zolab-vNet in the Connectivity resource group, and promotes the VM into a separate Active Directory forest.
 
 In the current lab state, `win11-xdr-lab-2` is the dedicated management workstation for this standalone domain and is joined to `applkr-lab.local` for normal administration of `dc-core`.
 
@@ -10,24 +10,23 @@ The template keeps the shared-network defaults generic. The working values used 
 
 ## Design Summary
 
-This deployment intentionally reuses the existing XDR lab Bastion path instead of creating a second Bastion host.
+This deployment reuses the existing Connectivity RG networking (Zolab-vNet with NAT gateway for outbound internet). VM access is via AVD with private network connectivity.
 
 - Resource group: `applkr-lab-rg`
 - Region: `eastus2`
-- Existing shared VNet: `xdr-lab-vnet` in `zolab-xdr-range-001`
-- Existing Bastion host: `xdr-lab-bastion`
-- Dedicated subnet: `applkr-lab-subnet` (`10.0.2.0/26`)
+- Existing shared VNet: `Zolab-vNet` in `Connectivity`
+- Dedicated subnet: `applkr-lab-subnet` (`10.4.2.0/26`)
 - Domain controller VM: `dc-core`
-- Static private IP: `10.0.2.4`
+- Static private IP: `10.4.2.4`
 - Domain: `applkr-lab.local`
 - NetBIOS: `APPLKRLAB`
 - Admin username: `azureadmin`
 
 ## Important Behavior
 
-- The template adds the subnet to the existing XDR lab VNet so the current Bastion host can reach the VM over its private IP.
-- The template does not repoint the shared VNet DHCP DNS settings. That avoids breaking or changing the existing XDR lab.
-- Traffic filtering is applied at the subnet level by the shared `xdr-lab-vnet` NSG. This avoids double evaluation from a second NIC-level NSG on `dc-core`.
+- The template adds the subnet to the existing Zolab-vNet so VMs on the same VNet can reach `dc-core` over its private IP.
+- The template does not repoint the shared VNet DHCP DNS settings. That avoids breaking or changing the existing Connectivity RG infrastructure.
+- Traffic filtering is applied at the subnet level by the existing `Zolab-vNet-default-nsg-eastus2` NSG in the Connectivity RG.
 - The template configures a conditional forwarder on the shared lab DNS server so hosts in the XDR lab can resolve `applkr-lab.local` automatically.
 - The standalone DC template does not domain-join any endpoints by itself.
 - In the active lab, `win11-xdr-lab-2` has been joined to `applkr-lab.local` and should be treated as the primary management VM for Server Core administration, GPMC, RSAT, and validation.
@@ -74,8 +73,8 @@ After the deployment completes, confirm the subnet and VM wiring:
 
 ```bash
 az network vnet subnet show \
-  --resource-group zolab-xdr-range-001 \
-  --vnet-name xdr-lab-vnet \
+  --resource-group Connectivity \
+  --vnet-name Zolab-vNet \
   --name applkr-lab-subnet \
   --query '{name:name,prefix:addressPrefix,id:id}' \
   --output table
@@ -94,7 +93,7 @@ az vm run-command invoke \
   --scripts 'Get-Service NTDS,DNS | Select-Object Name,Status; Get-ADDomain | Select-Object DNSRoot,NetBIOSName; hostname'
 
 az vm run-command invoke \
-  --resource-group zolab-xdr-range-001 \
+  --resource-group xdr-lab-rg \
   --name win11-xdr-lab-2 \
   --command-id RunPowerShellScript \
   --scripts 'Resolve-DnsName dc-core.applkr-lab.local | Select-Object Name,IPAddress'
@@ -104,7 +103,7 @@ If `win11-xdr-lab-2` is already joined to `applkr-lab.local`, validate end-to-en
 
 ```bash
 az vm run-command invoke \
-  --resource-group zolab-xdr-range-001 \
+  --resource-group xdr-lab-rg \
   --name win11-xdr-lab-2 \
   --command-id RunPowerShellScript \
   --scripts 'Resolve-DnsName dc-core.applkr-lab.local; Test-NetConnection dc-core.applkr-lab.local -Port 3389 | Select-Object ComputerName,RemotePort,TcpTestSucceeded'
@@ -112,12 +111,7 @@ az vm run-command invoke \
 
 ## Login
 
-Connect through the existing Azure Bastion host using the VM resource, private IP `10.0.2.4`, or FQDN `dc-core.applkr-lab.local`.
-
-Azure Portal path:
-
-- Virtual machine: `dc-core`
-- Connect: `Connect` -> `Bastion`
+Connect via AVD with private network access to the Zolab-vNet, using the VM private IP `10.4.2.4` or FQDN `dc-core.applkr-lab.local`.
 
 Use one of these usernames after promotion:
 
@@ -139,7 +133,7 @@ Recommended workflow:
 1. Sign in to `win11-xdr-lab-2` with `APPLKRLAB\azureadmin`.
 2. Install the required RSAT features if they are not already present.
 3. Use `gpmc.msc`, `dsa.msc`, PowerShell, and normal remote management from that VM.
-4. Use Azure Bastion or direct private-name resolution to reach `dc-core` when you need console access.
+4. Use AVD or direct private-name resolution to reach `dc-core` when you need console access.
 
 RSAT installation commands:
 
@@ -198,13 +192,13 @@ auditpol /get /category:*
 
 ## Test Cleanup
 
-Deleting the resource group removes the VM, NIC, and NSG, but the dedicated subnet lives in the shared XDR VNet and must be removed separately.
+Deleting the resource group removes the VM, NIC, and NSG, but the dedicated subnet lives in the shared Zolab-vNet and must be removed separately.
 
 ```bash
 az group delete --name applkr-lab-rg --yes --no-wait
 
 az network vnet subnet delete \
-  --resource-group zolab-xdr-range-001 \
-  --vnet-name xdr-lab-vnet \
+  --resource-group Connectivity \
+  --vnet-name Zolab-vNet \
   --name applkr-lab-subnet
 ```

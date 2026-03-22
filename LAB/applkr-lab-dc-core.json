@@ -11,30 +11,30 @@
     },
     "existingVnetResourceGroup": {
       "type": "string",
-      "defaultValue": "shared-network-rg",
+      "defaultValue": "Connectivity",
       "metadata": {
-        "description": "Resource group that contains the existing shared virtual network and Azure Bastion deployment. Supply the real value at deployment time."
+        "description": "Resource group that contains the existing shared virtual network (Zolab-vNet)."
       }
     },
     "existingVnetName": {
       "type": "string",
-      "defaultValue": "shared-lab-vnet",
+      "defaultValue": "Zolab-vNet",
       "metadata": {
-        "description": "Existing virtual network that the dedicated domain controller subnet will be added to. Supply the real value at deployment time."
+        "description": "Existing virtual network that the dedicated domain controller subnet will be added to."
       }
     },
-    "bastionHostName": {
+    "sharedDnsServerResourceGroup": {
       "type": "string",
-      "defaultValue": "shared-lab-bastion",
+      "defaultValue": "xdr-lab-rg",
       "metadata": {
-        "description": "Existing Azure Bastion host used for private RDP access. Supply the real value at deployment time."
+        "description": "Resource group containing the shared DNS server VM (dc-xdr-lab-1) for conditional forwarder configuration."
       }
     },
     "sharedDnsServerVmName": {
       "type": "string",
-      "defaultValue": "shared-dns-vm",
+      "defaultValue": "dc-xdr-lab-1",
       "metadata": {
-        "description": "Existing Windows DNS server VM that should receive a conditional forwarder for the standalone domain. Supply the real value at deployment time."
+        "description": "Existing Windows DNS server VM that should receive a conditional forwarder for the standalone domain."
       }
     },
     "domainControllerSubnetName": {
@@ -46,9 +46,9 @@
     },
     "domainControllerSubnetPrefix": {
       "type": "string",
-      "defaultValue": "10.0.2.0/26",
+      "defaultValue": "10.4.2.0/26",
       "metadata": {
-        "description": "Address prefix for the dedicated subnet that will be added to the existing xdr-lab-vnet."
+        "description": "Address prefix for the dedicated subnet that will be added to the existing Zolab-vNet."
       }
     },
     "domainControllerName": {
@@ -60,7 +60,7 @@
     },
     "domainControllerPrivateIp": {
       "type": "string",
-      "defaultValue": "10.0.2.4",
+      "defaultValue": "10.4.2.4",
       "metadata": {
         "description": "Static private IPv4 address assigned to the domain controller NIC."
       }
@@ -116,8 +116,7 @@
     "networkInterfaceName": "[concat(parameters('domainControllerName'), '-nic')]",
     "subnetDeploymentName": "deploy-dc-core-subnet",
     "conditionalForwarderDeploymentName": "configure-shared-dns-forwarder",
-    "subnetResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('domainControllerSubnetName'))]",
-    "bastionResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/bastionHosts', parameters('bastionHostName'))]"
+    "subnetResourceId": "[resourceId(parameters('existingVnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('domainControllerSubnetName'))]"
   },
   "resources": [
     {
@@ -260,7 +259,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "[variables('conditionalForwarderDeploymentName')]",
-      "resourceGroup": "[parameters('existingVnetResourceGroup')]",
+      "resourceGroup": "[parameters('sharedDnsServerResourceGroup')]",
       "dependsOn": [
         "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('domainControllerName'), 'PromoteToDomainController')]"
       ],
@@ -323,14 +322,6 @@
     }
   ],
   "outputs": {
-    "bastionHostName": {
-      "type": "string",
-      "value": "[parameters('bastionHostName')]"
-    },
-    "bastionHostResourceId": {
-      "type": "string",
-      "value": "[variables('bastionResourceId')]"
-    },
     "existingVnetName": {
       "type": "string",
       "value": "[parameters('existingVnetName')]"

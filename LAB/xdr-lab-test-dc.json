@@ -1,0 +1,253 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Smoke-test template: deploys a single DC into the Connectivity RG Zolab-vNet default subnet, promotes AD, verifies internet connectivity via NAT gateway, then can be torn down by deleting the resource group."
+  },
+  "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "lorenzo",
+      "metadata": {
+        "description": "Admin username for the test DC."
+      }
+    },
+    "windowsAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the test DC. Must be at least 12 characters with complexity requirements."
+      },
+      "minLength": 12
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "xdr-lab.local",
+      "metadata": {
+        "description": "The FQDN of the Active Directory Domain to be created"
+      }
+    },
+    "domainNetbiosName": {
+      "type": "string",
+      "defaultValue": "XDR-LAB",
+      "metadata": {
+        "description": "NetBIOS name for the AD domain"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4ads_v7",
+      "metadata": {
+        "description": "Size of the test DC virtual machine"
+      }
+    },
+    "connectivityResourceGroup": {
+      "type": "string",
+      "defaultValue": "Connectivity",
+      "metadata": {
+        "description": "Resource group containing the shared Zolab-vNet, NAT gateway, and NSG."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "variables": {
+    "existingVnetName": "Zolab-vNet",
+    "subnetName": "default",
+    "natGatewayName": "natgw-zolab",
+    "testDcName": "dc-xdr-test-1",
+    "testDcPrivateIP": "10.4.0.10",
+    "testDcNicName": "[concat(variables('testDcName'), '-nic')]",
+    "subnetResourceId": "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', variables('existingVnetName'), variables('subnetName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "ValidateNatGateway",
+      "resourceGroup": "[parameters('connectivityResourceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "vnetName": {
+              "type": "string"
+            },
+            "subnetName": {
+              "type": "string"
+            },
+            "expectedNatGatewayName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+            "natGatewayRef": "[resourceId('Microsoft.Network/natGateways', parameters('expectedNatGatewayName'))]"
+          },
+          "resources": [],
+          "outputs": {
+            "subnetNatGatewayId": {
+              "type": "string",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), reference(variables('subnetRef'), '2023-09-01').natGateway.id, 'NOT_CONFIGURED')]"
+            },
+            "expectedNatGatewayId": {
+              "type": "string",
+              "value": "[variables('natGatewayRef')]"
+            },
+            "natGatewayAssociated": {
+              "type": "bool",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), equals(reference(variables('subnetRef'), '2023-09-01').natGateway.id, variables('natGatewayRef')), false())]"
+            }
+          }
+        },
+        "parameters": {
+          "vnetName": {
+            "value": "[variables('existingVnetName')]"
+          },
+          "subnetName": {
+            "value": "[variables('subnetName')]"
+          },
+          "expectedNatGatewayName": {
+            "value": "[variables('natGatewayName')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('testDcNicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('testDcPrivateIP')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('testDcName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('testDcNicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('testDcName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter-azure-edition",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('testDcNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(variables('testDcName'), '/CreateADForest')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', variables('testDcName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.10",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('windowsAdminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
+        },
+        "protectedSettings": {}
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/runCommands",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(variables('testDcName'), '/TestInternetConnectivity')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('testDcName'), 'CreateADForest')]"
+      ],
+      "properties": {
+        "source": {
+          "script": "$results = @{}\ntry {\n  $dns = Resolve-DnsName -Name 'www.microsoft.com' -ErrorAction Stop\n  $results['DnsResolution'] = 'PASS - Resolved ' + $dns[0].Name\n} catch {\n  $results['DnsResolution'] = 'FAIL - ' + $_.Exception.Message\n}\ntry {\n  $web = Invoke-WebRequest -Uri 'https://www.microsoft.com' -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop\n  $results['HttpsOutbound'] = 'PASS - HTTP ' + $web.StatusCode\n} catch {\n  $results['HttpsOutbound'] = 'FAIL - ' + $_.Exception.Message\n}\ntry {\n  $ip = (Invoke-RestMethod -Uri 'https://api.ipify.org' -TimeoutSec 10 -ErrorAction Stop)\n  $results['OutboundPublicIP'] = 'PASS - NAT gateway public IP: ' + $ip\n} catch {\n  $results['OutboundPublicIP'] = 'FAIL - ' + $_.Exception.Message\n}\ntry {\n  $dc = Get-ADDomainController -ErrorAction Stop\n  $results['ADPromotion'] = 'PASS - DC: ' + $dc.HostName + ' Domain: ' + $dc.Domain\n} catch {\n  $results['ADPromotion'] = 'FAIL - ' + $_.Exception.Message\n}\n$results.GetEnumerator() | ForEach-Object { Write-Output ('{0}: {1}' -f $_.Key, $_.Value) }"
+        },
+        "timeoutInSeconds": 300
+      }
+    }
+  ],
+  "outputs": {
+    "natGatewayAssociated": {
+      "type": "bool",
+      "value": "[reference('ValidateNatGateway').outputs.natGatewayAssociated.value]"
+    },
+    "natGatewayId": {
+      "type": "string",
+      "value": "[reference('ValidateNatGateway').outputs.subnetNatGatewayId.value]"
+    },
+    "testDcPrivateIp": {
+      "type": "string",
+      "value": "[variables('testDcPrivateIP')]"
+    },
+    "testDcName": {
+      "type": "string",
+      "value": "[variables('testDcName')]"
+    },
+    "connectivityVnet": {
+      "type": "string",
+      "value": "[variables('existingVnetName')]"
+    },
+    "teardownCommand": {
+      "type": "string",
+      "value": "[concat('az group delete --name ', resourceGroup().name, ' --yes --no-wait')]"
+    }
+  }
+}
