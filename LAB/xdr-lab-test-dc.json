@@ -21,14 +21,14 @@
     },
     "domainName": {
       "type": "string",
-      "defaultValue": "xdr-lab.local",
+      "defaultValue": "xdr-test.local",
       "metadata": {
         "description": "The FQDN of the Active Directory Domain to be created"
       }
     },
     "domainNetbiosName": {
       "type": "string",
-      "defaultValue": "XDR-LAB",
+      "defaultValue": "XDR-TEST",
       "metadata": {
         "description": "NetBIOS name for the AD domain"
       }
