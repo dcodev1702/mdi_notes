@@ -118,27 +118,29 @@ Use `LAB/Scripts/Deploy-LabFlavor.ps1` to provision the supported lab flavors wi
 
 All supported command-line switches for `LAB/Scripts/Deploy-LabFlavor.ps1`:
 
-- `-Flavor <XDR-LAB|XDR-TEST|SVR-CORE>`: Required. Selects the deployment flavor.
-- `-SubscriptionName <string>`: Azure subscription name. Defaults to `zolab`.
-- `-Location <string>`: Azure region for the target resource group. Defaults to `eastus2`.
-- `-VmSize <string>`: VM size passed to the template when supported. Defaults to `Standard_D4ads_v7`.
-- `-ConnectivityResourceGroup <string>`: Shared connectivity resource group. Defaults to `Connectivity`.
-- `-ExistingVnetName <string>`: Shared VNet name for connectivity checks and SVR-CORE overrides. Defaults to `Zolab-vNet`.
-- `-XdrLabResourceGroup <string>`: Target resource group for `XDR-LAB`. Defaults to `xdr-lab-rg`.
-- `-XdrTestResourceGroup <string>`: Target resource group for `XDR-TEST`. Defaults to `xdr-lab-test-rg`.
-- `-SvrCoreResourceGroup <string>`: Target resource group for `SVR-CORE`. Defaults to `applkr-lab-rg`.
-- `-SharedDnsServerResourceGroup <string>`: Resource group containing the shared DNS server used by `SVR-CORE`. Defaults to `xdr-lab-rg`.
-- `-SharedDnsServerVmName <string>`: Shared DNS server VM name used by `SVR-CORE`. Defaults to `dc-xdr-lab-1`.
-- `-SvrCoreSubnetName <string>`: Dedicated subnet name for `SVR-CORE` deployment and cleanup. Defaults to `applkr-lab-subnet`.
-- `-SvrCoreParameterFile <string>`: Parameter file path for `SVR-CORE`. Defaults to `LAB/applkr-lab-dc-core.parameters.json`.
-- `-LinuxSshPublicKeyPath <string>`: Public key path for `XDR-LAB`. Defaults to `$HOME/.ssh/linux-xdr-lab-1.pub`.
-- `-AdminUsername <string>`: Override the template admin username. Defaults to `lorenzo` for `XDR-LAB` and `XDR-TEST`, and `azureadmin` for `SVR-CORE`.
-- `-AdminPassword <securestring>`: SecureString password input for interactive or pre-created secure password usage.
-- `-PasswordPlainText <string>`: Plaintext password input for automation scenarios. Do not combine with `-AdminPassword`.
-- `-ValidateOnly`: Runs `az deployment group validate` only and stops before deployment.
-- `-WhatIf`: Runs `az deployment group what-if` after validation and stops before deployment.
-- `-Delete`: Deletes the selected flavor resource group instead of deploying. For `SVR-CORE`, also removes the dedicated subnet from the shared VNet.
-- `-ConfirmDelete`: Bypasses the interactive delete confirmation prompt. Without this switch, delete mode requires typing `YES` interactively.
+| Switch | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `-Flavor` | `XDR-LAB \| XDR-TEST \| SVR-CORE` | Yes | None | Selects the deployment flavor. |
+| `-SubscriptionName` | `string` | No | `zolab` | Azure subscription name. |
+| `-Location` | `string` | No | `eastus2` | Azure region for the target resource group. |
+| `-VmSize` | `string` | No | `Standard_D4ads_v7` | VM size passed to the template when supported. |
+| `-ConnectivityResourceGroup` | `string` | No | `Connectivity` | Shared connectivity resource group. |
+| `-ExistingVnetName` | `string` | No | `Zolab-vNet` | Shared VNet name for connectivity checks and `SVR-CORE` overrides. |
+| `-XdrLabResourceGroup` | `string` | No | `xdr-lab-rg` | Target resource group for `XDR-LAB`. |
+| `-XdrTestResourceGroup` | `string` | No | `xdr-lab-test-rg` | Target resource group for `XDR-TEST`. |
+| `-SvrCoreResourceGroup` | `string` | No | `applkr-lab-rg` | Target resource group for `SVR-CORE`. |
+| `-SharedDnsServerResourceGroup` | `string` | No | `xdr-lab-rg` | Resource group containing the shared DNS server used by `SVR-CORE`. |
+| `-SharedDnsServerVmName` | `string` | No | `dc-xdr-lab-1` | Shared DNS server VM name used by `SVR-CORE`. |
+| `-SvrCoreSubnetName` | `string` | No | `applkr-lab-subnet` | Dedicated subnet name for `SVR-CORE` deployment and cleanup. |
+| `-SvrCoreParameterFile` | `string` | No | `LAB/applkr-lab-dc-core.parameters.json` | Parameter file path for `SVR-CORE`. |
+| `-LinuxSshPublicKeyPath` | `string` | No | `$HOME/.ssh/linux-xdr-lab-1.pub` | Public key path for `XDR-LAB`. |
+| `-AdminUsername` | `string` | No | `lorenzo` for `XDR-LAB` and `XDR-TEST`; `azureadmin` for `SVR-CORE` | Override the template admin username. |
+| `-AdminPassword` | `securestring` | No | None | SecureString password input for interactive or pre-created secure password usage. |
+| `-PasswordPlainText` | `string` | No | None | Plaintext password input for automation scenarios. Do not combine with `-AdminPassword`. |
+| `-ValidateOnly` | `switch` | No | `False` | Runs `az deployment group validate` only and stops before deployment. |
+| `-WhatIf` | `switch` | No | `False` | Runs `az deployment group what-if` after validation and stops before deployment. |
+| `-Delete` | `switch` | No | `False` | Deletes the selected flavor resource group instead of deploying. For `SVR-CORE`, also removes the dedicated subnet from the shared VNet. |
+| `-ConfirmDelete` | `switch` | No | `False` | Bypasses the interactive delete confirmation prompt. Without this switch, delete mode requires typing `YES` interactively. |
 
 Automation and cleanup examples:
 
