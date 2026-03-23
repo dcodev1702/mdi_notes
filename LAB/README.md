@@ -104,6 +104,64 @@ ssh-keygen -t ed25519 -C "lorenzo@linux-xdr-lab-1" -f ~/.ssh/linux-xdr-lab-1
 
 If Azure reports a live capacity constraint for `Standard_D4ads_v7`, use `Standard_D4as_v7` as the first fallback in the same region.
 
+### Unified PowerShell Wrapper
+
+Use `LAB/Scripts/Deploy-LabFlavor.ps1` to provision the supported lab flavors with a single entrypoint:
+
+```powershell
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor XDR-LAB
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor XDR-TEST
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor SVR-CORE
+```
+
+### Deployment Options
+
+All supported command-line switches for `LAB/Scripts/Deploy-LabFlavor.ps1`:
+
+- `-Flavor <XDR-LAB|XDR-TEST|SVR-CORE>`: Required. Selects the deployment flavor.
+- `-SubscriptionName <string>`: Azure subscription name. Defaults to `zolab`.
+- `-Location <string>`: Azure region for the target resource group. Defaults to `eastus2`.
+- `-VmSize <string>`: VM size passed to the template when supported. Defaults to `Standard_D4ads_v7`.
+- `-ConnectivityResourceGroup <string>`: Shared connectivity resource group. Defaults to `Connectivity`.
+- `-ExistingVnetName <string>`: Shared VNet name for connectivity checks and SVR-CORE overrides. Defaults to `Zolab-vNet`.
+- `-XdrLabResourceGroup <string>`: Target resource group for `XDR-LAB`. Defaults to `xdr-lab-rg`.
+- `-XdrTestResourceGroup <string>`: Target resource group for `XDR-TEST`. Defaults to `xdr-lab-test-rg`.
+- `-SvrCoreResourceGroup <string>`: Target resource group for `SVR-CORE`. Defaults to `applkr-lab-rg`.
+- `-SharedDnsServerResourceGroup <string>`: Resource group containing the shared DNS server used by `SVR-CORE`. Defaults to `xdr-lab-rg`.
+- `-SharedDnsServerVmName <string>`: Shared DNS server VM name used by `SVR-CORE`. Defaults to `dc-xdr-lab-1`.
+- `-SvrCoreSubnetName <string>`: Dedicated subnet name for `SVR-CORE` deployment and cleanup. Defaults to `applkr-lab-subnet`.
+- `-SvrCoreParameterFile <string>`: Parameter file path for `SVR-CORE`. Defaults to `LAB/applkr-lab-dc-core.parameters.json`.
+- `-LinuxSshPublicKeyPath <string>`: Public key path for `XDR-LAB`. Defaults to `$HOME/.ssh/linux-xdr-lab-1.pub`.
+- `-AdminUsername <string>`: Override the template admin username. Defaults to `lorenzo` for `XDR-LAB` and `XDR-TEST`, and `azureadmin` for `SVR-CORE`.
+- `-AdminPassword <securestring>`: SecureString password input for interactive or pre-created secure password usage.
+- `-PasswordPlainText <string>`: Plaintext password input for automation scenarios. Do not combine with `-AdminPassword`.
+- `-ValidateOnly`: Runs `az deployment group validate` only and stops before deployment.
+- `-WhatIf`: Runs `az deployment group what-if` after validation and stops before deployment.
+- `-Delete`: Deletes the selected flavor resource group instead of deploying. For `SVR-CORE`, also removes the dedicated subnet from the shared VNet.
+- `-ConfirmDelete`: Bypasses the interactive delete confirmation prompt. Without this switch, delete mode requires typing `YES` interactively.
+
+Automation and cleanup examples:
+
+```powershell
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor XDR-LAB -PasswordPlainText '<ENTER_STRONG_WINDOWS_PASSWORD_HERE>'
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor XDR-LAB -WhatIf
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor XDR-TEST -Delete -ConfirmDelete
+.\LAB\Scripts\Deploy-LabFlavor.ps1 -Flavor SVR-CORE -Delete -ConfirmDelete -SvrCoreResourceGroup 'applkr-lab-rg'
+```
+
+Behavior:
+
+- Targets the `zolab` subscription by default
+- Verifies Azure CLI sign-in and access to the shared Connectivity resources before provisioning
+- Creates the target resource group if needed
+- Runs `az deployment group validate` before deployment
+- For `XDR-LAB`, requires a public key at `$HOME/.ssh/linux-xdr-lab-1.pub` unless you override `-LinuxSshPublicKeyPath`
+- Supports `-ValidateOnly` and `-WhatIf` for dry runs
+- Supports `-Delete` for one-command cleanup; `SVR-CORE` cleanup also removes the dedicated subnet from the shared VNet
+- Prompts for confirmation before deletes unless you pass `-ConfirmDelete`
+- Supports `-PasswordPlainText` for automation pipelines while keeping the secure prompt as the default interactive path
+- Supports resource group overrides with `-XdrLabResourceGroup`, `-XdrTestResourceGroup`, `-SvrCoreResourceGroup`, and shared dependency overrides for `SVR-CORE`
+
 ### Deploy via Azure CLI
 
 ```bash
