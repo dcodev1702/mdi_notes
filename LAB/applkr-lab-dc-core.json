@@ -60,7 +60,7 @@
     },
     "domainControllerPrivateIp": {
       "type": "string",
-      "defaultValue": "10.4.2.10",
+      "defaultValue": "10.4.2.4",
       "metadata": {
         "description": "Static private IPv4 address assigned to the domain controller NIC."
       }
