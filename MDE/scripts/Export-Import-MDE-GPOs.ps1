@@ -1,5 +1,5 @@
 <#
-    Author: DCODEV1702 & Claude Sonnet 4.5
+    Author: DCODEV1702 & ChatGPT 5.4
     Date: 14 Nov 2025
     
     .SYNOPSIS
