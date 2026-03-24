@@ -39,8 +39,8 @@
     Default: Current directory for import function
     
     .PARAMETER Domain
-    Target domain for GPO import operations.
-    Default: contoso.local
+    Target domain for GPO import operations (REQUIRED).
+    Default: xdr-lab.local
     
     .EXAMPLE
     # Backup MDE GPOs to default location
@@ -51,12 +51,12 @@
     Backup-MDE-GPOs -BackupPath "C:\GPOBackups\MDE"
     
     .EXAMPLE
-    # Import MDE GPOs from current directory
+    # Import MDE GPOs using default domain (xdr-lab.local)
     Import-MDE-GPOs
     
     .EXAMPLE
-    # Import MDE GPOs from custom location and domain
-    Import-MDE-GPOs -BackupPath "C:\GPOBackups\MDE" -Domain "contoso.local"
+    # Import MDE GPOs with custom location and domain
+    Import-MDE-GPOs -BackupPath "C:\GPOBackups\MDE" -Domain "mycorp.local"
     
     .NOTES
     Requirements:
@@ -73,7 +73,6 @@
 # Import required modules
 Import-Module GroupPolicy
 Import-Module ActiveDirectory
-
 function Backup-MDE-GPOs {
     param(
         [Parameter(Mandatory=$false)]
@@ -139,9 +138,25 @@ function Import-MDE-GPOs {
         [Parameter(Mandatory=$false)]
         [string]$BackupPath = "$PWD",
         
-        [Parameter(Mandatory=$false)]
-        [string]$Domain = "contoso.local"
+        [Parameter(Mandatory=$true)]
+        [string]$Domain = "xdr-lab.local"
     )
+    
+    # Confirm domain with user before proceeding
+    Write-Host "`n========================================" -ForegroundColor Yellow
+    Write-Host "  Target Domain: $Domain" -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Yellow
+    Write-Host "Press 'Y' to continue or any other key to abort: " -ForegroundColor Yellow -NoNewline
+    
+    $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Write-Host $key.Character
+    
+    if ($key.Character -notin @('y','Y')) {
+        Write-Host "`nAborted by user." -ForegroundColor Red
+        return
+    }
+    
+    Write-Host "`nProceeding with domain: $Domain`n" -ForegroundColor Green
     
     # Build DN paths
     $DomainDN = "DC=" + ($Domain -split '\.' -join ',DC=')
@@ -273,4 +288,5 @@ function Import-MDE-GPOs {
 
 # Usage Examples:
 # Backup-MDE-GPOs
-Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup"
+# Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup" -Domain "mycorp.local"
+Import-MDE-GPOs -BackupPath "$PWD\MDE-GPO-Backup" -Domain "xdr-lab.local"
