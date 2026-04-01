@@ -85,7 +85,9 @@ function Resolve-PlainPassword {
     }
 
     $promptedPassword = Read-Host -Prompt "Enter the administrator password for $PromptFlavor (minimum 12 characters)" -AsSecureString
-    return (ConvertTo-PlainText -Value $promptedPassword)
+    $plain = ConvertTo-PlainText -Value $promptedPassword
+    Write-Host "[+] Password set to: $plain" -ForegroundColor Green
+    return $plain
 }
 
 function Invoke-Az {
