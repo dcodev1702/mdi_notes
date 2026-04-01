@@ -11,7 +11,6 @@
     },
     "windowsAdminPassword": {
       "type": "securestring",
-      "defaultValue": "Passw0rd123!@#",
       "metadata": {
         "description": "Password for the Windows virtual machines. Must be at least 12 characters with complexity requirements."
       },
