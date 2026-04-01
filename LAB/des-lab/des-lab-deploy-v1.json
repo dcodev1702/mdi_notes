@@ -1,0 +1,541 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "destiny",
+      "metadata": {
+        "description": "Admin username for all virtual machines."
+      }
+    },
+    "windowsAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "Passw0rd123!@#",
+      "metadata": {
+        "description": "Password for the Windows virtual machines. Must be at least 12 characters with complexity requirements."
+      },
+      "minLength": 12
+    },
+    "linuxSshPublicKey": {
+      "type": "string",
+      "defaultValue": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILcYvcpHxzh5DiDMphsUO3ZIZUyFK3pDDKReuB5kYTim destiny@des-lab",
+      "metadata": {
+        "description": "SSH public key for the Linux VM. Example: ssh-ed25519 AAAA..."
+      }
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "des-lab.local",
+      "metadata": {
+        "description": "The FQDN of the Active Directory Domain to be created"
+      }
+    },
+    "domainNetbiosName": {
+      "type": "string",
+      "defaultValue": "DES-LAB",
+      "metadata": {
+        "description": "NetBIOS name for the AD domain"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4ads_v7",
+      "metadata": {
+        "description": "Size of the virtual machines"
+      }
+    },
+    "connectivityResourceGroup": {
+      "type": "string",
+      "defaultValue": "Connectivity",
+      "metadata": {
+        "description": "Resource group containing the shared Zolab-vNet, NAT gateway, and NSG."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "variables": {
+    "existingVnetName": "Zolab-vNet",
+    "subnetName": "des-lab-sn",
+    "natGatewayName": "natgw-zolab",
+    "serverVmName": "dc-des-lab-1",
+    "serverPrivateIP": "10.4.100.4",
+    "win11Vm1Name": "win11-des-lab-1",
+    "win11Vm1PrivateIP": "10.4.100.5",
+    "win11Vm2Name": "win11-des-lab-2",
+    "win11Vm2PrivateIP": "10.4.100.7",
+    "linuxVmName": "linux-des-lab-1",
+    "linuxPrivateIP": "10.4.100.6",
+    "serverNicName": "[concat(variables('serverVmName'), '-nic')]",
+    "win11Vm1NicName": "[concat(variables('win11Vm1Name'), '-nic')]",
+    "win11Vm2NicName": "[concat(variables('win11Vm2Name'), '-nic')]",
+    "linuxNicName": "[concat(variables('linuxVmName'), '-nic')]",
+    "subnetResourceId": "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', variables('existingVnetName'), variables('subnetName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "ValidateNatGateway",
+      "resourceGroup": "[parameters('connectivityResourceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "vnetName": {
+              "type": "string"
+            },
+            "subnetName": {
+              "type": "string"
+            },
+            "expectedNatGatewayName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+            "natGatewayRef": "[resourceId('Microsoft.Network/natGateways', parameters('expectedNatGatewayName'))]"
+          },
+          "resources": [],
+          "outputs": {
+            "subnetNatGatewayId": {
+              "type": "string",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), reference(variables('subnetRef'), '2023-09-01').natGateway.id, 'NOT_CONFIGURED')]"
+            },
+            "expectedNatGatewayId": {
+              "type": "string",
+              "value": "[variables('natGatewayRef')]"
+            },
+            "natGatewayAssociated": {
+              "type": "bool",
+              "value": "[if(contains(reference(variables('subnetRef'), '2023-09-01'), 'natGateway'), equals(reference(variables('subnetRef'), '2023-09-01').natGateway.id, variables('natGatewayRef')), false())]"
+            }
+          }
+        },
+        "parameters": {
+          "vnetName": {
+            "value": "[variables('existingVnetName')]"
+          },
+          "subnetName": {
+            "value": "[variables('subnetName')]"
+          },
+          "expectedNatGatewayName": {
+            "value": "[variables('natGatewayName')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('serverNicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('serverPrivateIP')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('win11Vm1NicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('win11Vm1PrivateIP')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ],
+        "dnsSettings": {
+          "dnsServers": [
+            "[variables('serverPrivateIP')]"
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('win11Vm2NicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('win11Vm2PrivateIP')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ],
+        "dnsSettings": {
+          "dnsServers": [
+            "[variables('serverPrivateIP')]"
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('linuxNicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId(parameters('connectivityResourceGroup'), 'Microsoft.Resources/deployments', 'ValidateNatGateway')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[variables('linuxPrivateIP')]",
+              "subnet": {
+                "id": "[variables('subnetResourceId')]"
+              }
+            }
+          }
+        ],
+        "dnsSettings": {
+          "dnsServers": [
+            "[variables('serverPrivateIP')]"
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('serverVmName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('serverNicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('serverVmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter-azure-edition",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('serverNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(variables('serverVmName'), '/CreateADForest')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', variables('serverVmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.10",
+        "autoUpgradeMinorVersion": true,
+          "settings": {},
+          "protectedSettings": {
+            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"$ErrorActionPreference = ''Stop''; $password = ConvertTo-SecureString ''', parameters('windowsAdminPassword'), ''' -AsPlainText -Force; Install-WindowsFeature -Name AD-Domain-Services, DNS -IncludeManagementTools; Import-Module ADDSDeployment; Install-ADDSForest -DomainName ''', parameters('domainName'), ''' -DomainNetbiosName ''', parameters('domainNetbiosName'), ''' -SafeModeAdministratorPassword $password -InstallDns:$true -CreateDnsDelegation:$false -NoRebootOnCompletion:$false -Force:$true\"')]"
+          }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('win11Vm1Name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm1NicName'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('win11Vm1Name')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "Windows-11",
+            "sku": "win11-25h2-ent",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm1NicName'))]"
+            }
+          ]
+        },
+        "licenseType": "Windows_Client"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(variables('win11Vm1Name'), '/JoinDomain')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', variables('win11Vm1Name'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "Name": "[parameters('domainName')]",
+          "User": "[concat(parameters('domainName'), '\\', parameters('adminUsername'))]",
+          "Restart": "true",
+          "Options": "3"
+        },
+        "protectedSettings": {
+          "Password": "[parameters('windowsAdminPassword')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('win11Vm2Name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm2NicName'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('win11Vm2Name')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('windowsAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "Windows-11",
+            "sku": "win11-25h2-ent",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('win11Vm2NicName'))]"
+            }
+          ]
+        },
+        "licenseType": "Windows_Client"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat(variables('win11Vm2Name'), '/JoinDomain')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', variables('win11Vm2Name'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', variables('serverVmName'), 'CreateADForest')]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "Name": "[parameters('domainName')]",
+          "User": "[concat(parameters('domainName'), '\\', parameters('adminUsername'))]",
+          "Restart": "true",
+          "Options": "3"
+        },
+        "protectedSettings": {
+          "Password": "[parameters('windowsAdminPassword')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('linuxVmName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('linuxNicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('linuxVmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "provisionVMAgent": true,
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                  "keyData": "[parameters('linuxSshPublicKey')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "ubuntu-24_04-lts",
+            "sku": "server",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('linuxNicName'))]"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "natGatewayAssociated": {
+      "type": "bool",
+      "value": "[reference('ValidateNatGateway').outputs.natGatewayAssociated.value]"
+    },
+    "natGatewayId": {
+      "type": "string",
+      "value": "[reference('ValidateNatGateway').outputs.subnetNatGatewayId.value]"
+    },
+    "dcPrivateIp": {
+      "type": "string",
+      "value": "[variables('serverPrivateIP')]"
+    },
+    "win11Vm1PrivateIp": {
+      "type": "string",
+      "value": "[variables('win11Vm1PrivateIP')]"
+    },
+    "win11Vm2PrivateIp": {
+      "type": "string",
+      "value": "[variables('win11Vm2PrivateIP')]"
+    },
+    "linuxPrivateIp": {
+      "type": "string",
+      "value": "[variables('linuxPrivateIP')]"
+    },
+    "domainName": {
+      "type": "string",
+      "value": "[parameters('domainName')]"
+    },
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    },
+    "connectivityVnet": {
+      "type": "string",
+      "value": "[variables('existingVnetName')]"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+# SSH keys (private and public)
+*.pub
+**/id_rsa
+**/id_ed25519
+**/id_ecdsa
+**/id_dsa
+**/*-key
+**/*-key.pub

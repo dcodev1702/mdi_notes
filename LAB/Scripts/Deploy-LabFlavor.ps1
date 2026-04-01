@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('XDR-LAB', 'XDR-TEST', 'SVR-CORE')]
+    [ValidateSet('XDR-LAB', 'XDR-TEST', 'SVR-CORE', 'DES-LAB')]
     [string]$Flavor,
 
     [string]$SubscriptionName = 'zolab',
@@ -12,11 +12,12 @@ param(
     [string]$XdrLabResourceGroup = 'xdr-lab-rg',
     [string]$XdrTestResourceGroup = 'xdr-lab-test-rg',
     [string]$SvrCoreResourceGroup = 'applkr-lab-rg',
+    [string]$DesLabResourceGroup = 'des-lab-rg',
     [string]$SharedDnsServerResourceGroup = 'xdr-lab-rg',
     [string]$SharedDnsServerVmName = 'dc-xdr-lab-1',
     [string]$SvrCoreSubnetName = 'applkr-lab-subnet',
     [string]$SvrCoreParameterFile,
-    [string]$LinuxSshPublicKeyPath = (Join-Path $HOME '.ssh\linux-xdr-lab-1.pub'),
+    [string]$LinuxSshPublicKeyPath,
     [string]$AdminUsername,
     [securestring]$AdminPassword,
     [string]$PasswordPlainText,
@@ -229,6 +230,12 @@ function Get-FlavorMetadata {
                 TemplateFile  = (Join-Path $labDirectory 'xdr-lab-test-dc.json')
             }
         }
+        'DES-LAB' {
+            return @{
+                ResourceGroup = $DesLabResourceGroup
+                TemplateFile  = (Join-Path $labDirectory 'des-lab\des-lab-deploy-v1.json')
+            }
+        }
         'SVR-CORE' {
             return @{
                 ResourceGroup              = $SvrCoreResourceGroup
@@ -263,6 +270,18 @@ function Get-DeploymentParameters {
 
     switch ($SelectedFlavor) {
         'XDR-LAB' {
+            $sshPublicKey = Ensure-XdrLabKey -PublicKeyPath $SelectedSshPublicKeyPath
+
+            return @(
+                "adminUsername=$SelectedAdminUsername"
+                "windowsAdminPassword=$PlainPassword"
+                "connectivityResourceGroup=$SelectedConnectivityResourceGroup"
+                "location=$SelectedLocation"
+                "vmSize=$SelectedVmSize"
+                "linuxSshPublicKey=$sshPublicKey"
+            )
+        }
+        'DES-LAB' {
             $sshPublicKey = Ensure-XdrLabKey -PublicKeyPath $SelectedSshPublicKeyPath
 
             return @(
@@ -400,7 +419,15 @@ try {
     if (-not $AdminUsername) {
         switch ($Flavor) {
             'SVR-CORE' { $AdminUsername = 'azureadmin' }
-            default { $AdminUsername = 'lorenzo' }
+            'DES-LAB'  { $AdminUsername = 'destiny' }
+            default    { $AdminUsername = 'lorenzo' }
+        }
+    }
+
+    if (-not $LinuxSshPublicKeyPath) {
+        switch ($Flavor) {
+            'DES-LAB' { $LinuxSshPublicKeyPath = Join-Path $labDirectory 'des-lab\des-lab-linux-key.pub' }
+            default   { $LinuxSshPublicKeyPath = Join-Path $HOME '.ssh\linux-xdr-lab-1.pub' }
         }
     }
 
