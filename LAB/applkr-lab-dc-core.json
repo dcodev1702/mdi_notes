@@ -211,7 +211,7 @@
         "storageProfile": {
           "imageReference": {
             "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
+            "offer": "windowsserver2022",
             "sku": "2022-datacenter-core-g2",
             "version": "latest"
           },

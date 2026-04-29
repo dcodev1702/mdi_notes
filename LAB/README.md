@@ -92,6 +92,7 @@ All VMs are accessed via Azure Virtual Desktop (AVD) that has private network co
 - Azure CLI or PowerShell installed
 - Default deployment region is `eastus2`
 - Default VM size is `Standard_D4ads_v7` (16 GB RAM, 4 vCPU)
+- Windows Server 2022 VMs use the `MicrosoftWindowsServer:windowsserver2022` marketplace offer with `version=latest`.
 - Windows admin password meeting complexity requirements (12+ characters, mixed case, numbers, symbols)
 - SSH public key available for the Linux VM in OpenSSH format
 - Existing Connectivity RG with Zolab-vNet, natgw-zolab, and Zolab-vNet-default-nsg-eastus2
